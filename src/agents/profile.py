@@ -347,14 +347,18 @@ Just tell me about your situation in natural language, and I'll update your prof
                 return {}
 
             return {
-                "name": profile.name,
+                "user_id": profile.user_id,
                 "annual_income": profile.annual_income,
                 "employment_status": profile.employment_status,
                 "filing_status": profile.filing_status,
                 "dependents": profile.dependents,
                 "tax_goals": profile.tax_goals or [],
                 "risk_tolerance": profile.risk_tolerance,
-                "preferred_language": profile.preferred_language,
+                "preferred_deductions": profile.preferred_deductions or [],
+                "conversation_count": profile.conversation_count,
+                "last_interaction": profile.last_interaction,
+                "preferred_communication_style": profile.preferred_communication_style,
+                "tax_complexity_level": profile.tax_complexity_level,
                 "created_at": profile.created_at,
                 "updated_at": profile.updated_at,
             }

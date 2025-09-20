@@ -1,0 +1,208 @@
+"""Chat component for TaxFix Frontend."""
+
+import streamlit as st
+from datetime import datetime
+from typing import Dict, List
+from ..services.api_client import APIClient
+from ..auth.auth_manager import AuthManager
+from ..utils.helpers import SessionHelper, StreamingHelper
+
+
+def render_chat_interface(api_client: APIClient, auth_manager: AuthManager):
+    """Render the main chat interface."""
+    st.markdown("## 💬 Chat with TaxFix AI")
+    
+    # Initialize session ID if needed
+    if not st.session_state.current_session_id:
+        user = auth_manager.get_current_user()
+        if user:
+            user_id = user.get("id") or user.get("user_id", "unknown")
+            st.session_state.current_session_id = SessionHelper.generate_session_id(user_id)
+    
+    # Display conversation history
+    render_conversation_display()
+    
+    # Chat input form
+    render_chat_input(api_client, auth_manager)
+
+
+def render_conversation_display():
+    """Render the conversation history."""
+    if not st.session_state.conversation_history:
+        st.markdown("""
+        <div class="welcome-message">
+            <h3>👋 Welcome to TaxFix AI!</h3>
+            <p>I'm here to help you with German tax questions. Ask me anything about:</p>
+            <ul>
+                <li>📋 Tax deductions and allowances</li>
+                <li>💰 Tax calculations and rates</li>
+                <li>📊 Tax planning strategies</li>
+                <li>🏢 Business and employment taxes</li>
+                <li>📋 Tax filing requirements</li>
+            </ul>
+            <p><strong>Start by asking a question below!</strong></p>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Display messages
+    for i, message in enumerate(st.session_state.conversation_history):
+        role = message.get("role", "user")
+        content = message.get("content", "")
+        timestamp = message.get("timestamp", datetime.now())
+        
+        if role == "user":
+            render_user_message(content, timestamp)
+        else:
+            render_assistant_message(content, timestamp)
+
+
+def render_user_message(content: str, timestamp):
+    """Render a user message."""
+    st.markdown(f"""
+    <div class="chat-message user-message">
+        <div style="font-size: 0.8em; opacity: 0.8; margin-bottom: 0.5rem;">
+            You • {format_timestamp(timestamp)}
+        </div>
+        <div>{content}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_assistant_message(content: str, timestamp):
+    """Render an assistant message."""
+    st.markdown(f"""
+    <div class="chat-message assistant-message">
+        <div style="font-size: 0.8em; opacity: 0.8; margin-bottom: 0.5rem;">
+            TaxFix AI • {format_timestamp(timestamp)}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Use markdown container for proper formatting
+    with st.container():
+        st.markdown(f'<div class="markdown-content">{content}</div>', unsafe_allow_html=True)
+
+
+def render_chat_input(api_client: APIClient, auth_manager: AuthManager):
+    """Render the chat input form."""
+    st.markdown("---")
+    
+    # Initialize processing state
+    if 'is_processing' not in st.session_state:
+        st.session_state.is_processing = False
+    
+    # Chat input with proper Enter key handling
+    with st.form("chat_form", clear_on_submit=False):
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            # Check for pre-filled message from dashboard
+            prefill_value = st.session_state.get('prefill_message', '')
+            # Don't clear prefill_message here - clear it only after successful send
+            
+            user_input = st.text_input(
+                "Ask me anything about German taxes...", 
+                value=prefill_value,
+                placeholder="What are the tax deductions I can claim?",
+                key=f"chat_input_field_{st.session_state.get('input_clear_counter', 0)}",
+                disabled=st.session_state.is_processing,
+                help="Press Enter or click Send to submit your message"
+            )
+        with col2:
+            send_button = st.form_submit_button(
+                "Send" if not st.session_state.is_processing else "Processing...",
+                use_container_width=True,
+                disabled=st.session_state.is_processing
+            )
+    
+    # Handle message sending
+    if send_button and user_input and user_input.strip():
+        handle_message_send(api_client, auth_manager, user_input.strip())
+
+
+def handle_message_send(api_client: APIClient, auth_manager: AuthManager, message: str):
+    """Handle sending a message and getting response."""
+    st.session_state.is_processing = True
+    
+    try:
+        # Add user message to history
+        user_message = {
+            "role": "user",
+            "content": message,
+            "timestamp": datetime.now()
+        }
+        st.session_state.conversation_history.append(user_message)
+        
+        # Show processing indicator
+        with st.empty():
+            st.markdown("""
+            <div class="processing-indicator">
+                <div>🤔 TaxFix AI is thinking...</div>
+                <div style="font-size: 0.9em; margin-top: 0.5rem;">Analyzing your tax question...</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Send message to API
+        token = auth_manager.get_token()
+        session_id = st.session_state.current_session_id
+        
+        # Use streaming response
+        response_placeholder = st.empty()
+        response_content = ""
+        
+        try:
+            for chunk in api_client.send_message_streaming(message, session_id, token):
+                if chunk and chunk.strip():
+                    response_content += chunk
+                    # Update the display with accumulated content
+                    with response_placeholder.container():
+                        render_assistant_message(response_content, datetime.now())
+        except Exception as stream_error:
+            # Fallback to non-streaming
+            response = api_client.send_message(message, session_id, token)
+            if response.get("success"):
+                response_content = response.get("content", "I encountered an error processing your request.")
+            else:
+                response_content = f"Error: {response.get('error', 'Unknown error occurred')}"
+        
+        # Add assistant response to history
+        assistant_message = {
+            "role": "assistant",
+            "content": response_content,
+            "timestamp": datetime.now()
+        }
+        st.session_state.conversation_history.append(assistant_message)
+        
+    except Exception as e:
+        st.error(f"Error sending message: {str(e)}")
+        # Add error response to history
+        error_response = {
+            "role": "assistant",
+            "content": f"Error: {str(e)}",
+            "timestamp": datetime.now()
+        }
+        st.session_state.conversation_history.append(error_response)
+    
+    finally:
+        # Reset processing state
+        st.session_state.is_processing = False
+        
+        # Clear the prefill message after successful send
+        if 'prefill_message' in st.session_state:
+            del st.session_state.prefill_message
+        
+        # Clear the input field after response is complete
+        st.session_state.input_clear_counter = st.session_state.get('input_clear_counter', 0) + 1
+        
+        # Rerun to update the display
+        st.rerun()
+
+
+def format_timestamp(timestamp) -> str:
+    """Format timestamp for display."""
+    if isinstance(timestamp, str):
+        return timestamp
+    try:
+        return timestamp.strftime("%H:%M")
+    except:
+        return "Now"
