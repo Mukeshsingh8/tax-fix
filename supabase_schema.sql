@@ -112,41 +112,9 @@ CREATE TABLE IF NOT EXISTS tax_documents (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- =====================================================
--- 7. VECTOR EMBEDDINGS TABLES (For AI Knowledge)
--- =====================================================
-
--- Tax rules embeddings (used by vector service)
-CREATE TABLE IF NOT EXISTS tax_rules_embeddings (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    content TEXT NOT NULL,
-    embedding VECTOR(384), -- Adjust dimension based on your embedding model
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Deductions embeddings (used by vector service)
-CREATE TABLE IF NOT EXISTS deductions_embeddings (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    content TEXT NOT NULL,
-    embedding VECTOR(384), -- Adjust dimension based on your embedding model
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- User context embeddings (used by vector service)
-CREATE TABLE IF NOT EXISTS user_context_embeddings (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    embedding VECTOR(384), -- Adjust dimension based on your embedding model
-    context_type TEXT DEFAULT 'conversation',
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
 
 -- =====================================================
--- 8. INDEXES FOR PERFORMANCE
+-- 7. INDEXES FOR PERFORMANCE
 -- =====================================================
 
 -- Users indexes

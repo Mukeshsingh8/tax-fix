@@ -33,9 +33,6 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379", env="REDIS_URL")
     redis_password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
     
-    # Vector Database
-    vector_db_path: str = Field(default="./data/vector_db", env="VECTOR_DB_PATH")
-    embedding_model: str = Field(default="all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
     
     # Security
     secret_key: str = Field(default="your-secret-key-here", env="SECRET_KEY")
