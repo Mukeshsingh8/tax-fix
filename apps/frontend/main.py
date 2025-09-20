@@ -1382,9 +1382,26 @@ class TaxFixFrontend:
             # This will be handled in the main navigation
     
     def render_profile_creation_page(self):
-        """Render profile creation page."""
-        st.markdown("### 👤 Create Your Tax Profile")
-        st.markdown("To provide you with personalized tax advice, we need to know a bit about your situation.")
+        """Render beautiful profile creation page."""
+        st.markdown('<div class="section-header">👤 Create Your Tax Profile</div>', unsafe_allow_html=True)
+        
+        # Welcome message with user info
+        user = st.session_state.user
+        st.markdown(f'''
+        <div style="
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin: 1rem 0 2rem 0;
+            box-shadow: 0 8px 15px rgba(79, 172, 254, 0.3);
+        ">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+            <h2 style="margin: 0;">Welcome, {user.get('name', 'User')}!</h2>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Let's create your personalized tax profile to provide you with the best advice</p>
+        </div>
+        ''', unsafe_allow_html=True)
         
         with st.form("create_profile_form"):
             st.markdown("#### 📊 Basic Information")
@@ -1474,64 +1491,194 @@ class TaxFixFrontend:
                         st.error(f"Error creating profile: {response.get('error', 'Unknown error')}")
 
     def render_profile_page(self):
-        """Render profile management page."""
-        st.markdown("### 👤 Profile Management")
+        """Render beautiful profile management page."""
+        st.markdown('<div class="section-header">👤 Profile Management</div>', unsafe_allow_html=True)
         
         if st.session_state.user_profile:
             profile = st.session_state.user_profile
+            user = st.session_state.user
+            
+            # === USER INFO HEADER ===
+            st.markdown(f'''
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 2rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 1rem 0 2rem 0;
+                box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+            ">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">👤</div>
+                <h2 style="margin: 0;">{user.get('name', 'User')} Profile</h2>
+                <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">{user.get('email', '')}</p>
+            </div>
+            ''', unsafe_allow_html=True)
             
             with st.form("profile_form"):
-                col1, col2 = st.columns(2)
+                # === PERSONAL INFORMATION ===
+                st.markdown('<div class="section-header">📋 Personal Information</div>', unsafe_allow_html=True)
+                col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    name = st.text_input("Name", value=profile.get('name', ''))
-                    email = st.text_input("Email", value=profile.get('email', ''), disabled=True)
-                    annual_income = st.number_input("Annual Income (€)", value=float(profile.get('annual_income', 0)), min_value=0.0, step=1000.0)
+                    # Auto-populate from logged-in user data
+                    name = st.text_input(
+                        "👤 Full Name", 
+                        value=user.get('name', ''),
+                        help="Your full name as registered"
+                    )
+                
+                with col2:
+                    # Email from logged-in user (read-only)
+                    email = st.text_input(
+                        "📧 Email Address", 
+                        value=user.get('email', ''), 
+                        disabled=True,
+                        help="Email cannot be changed here"
+                    )
+                
+                with col3:
+                    dependents = st.number_input(
+                        "👨‍👩‍👧‍👦 Dependents", 
+                        value=int(profile.get('dependents', 0)), 
+                        min_value=0, 
+                        max_value=10,
+                        help="Number of people you financially support"
+                    )
+                
+                # === FINANCIAL INFORMATION ===
+                st.markdown('<div class="section-header">💰 Financial Information</div>', unsafe_allow_html=True)
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    annual_income = st.number_input(
+                        "💵 Annual Income (€)", 
+                        value=float(profile.get('annual_income', 0)), 
+                        min_value=0.0, 
+                        step=1000.0,
+                        help="Your gross annual income in Euros"
+                    )
                 
                 with col2:
                     employment_status = st.selectbox(
-                        "Employment Status",
+                        "💼 Employment Status",
                         ["employed", "self-employed", "unemployed", "retired"],
-                        index=["employed", "self-employed", "unemployed", "retired"].index(profile.get('employment_status', 'employed'))
+                        index=["employed", "self-employed", "unemployed", "retired"].index(profile.get('employment_status', 'employed')),
+                        help="Your current employment situation"
                     )
-                    filing_status = st.selectbox(
-                        "Filing Status",
-                        ["single", "married_joint", "married_separate", "head_of_household"],
-                        index=["single", "married_joint", "married_separate", "head_of_household"].index(profile.get('filing_status', 'single'))
-                    )
-                    dependents = st.number_input("Number of Dependents", value=int(profile.get('dependents', 0)), min_value=0, max_value=10)
-                
-                # Additional profile fields
-                st.markdown("#### 🎯 Tax Preferences")
-                col3, col4 = st.columns(2)
                 
                 with col3:
+                    filing_status = st.selectbox(
+                        "📋 Filing Status",
+                        ["single", "married_joint", "married_separate", "head_of_household"],
+                        index=["single", "married_joint", "married_separate", "head_of_household"].index(profile.get('filing_status', 'single')),
+                        help="Your tax filing status"
+                    )
+                
+                # === TAX PREFERENCES ===
+                st.markdown('<div class="section-header">🎯 Tax Preferences</div>', unsafe_allow_html=True)
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
                     risk_tolerance = st.selectbox(
-                        "Risk Tolerance",
+                        "🛡️ Risk Tolerance",
                         ["conservative", "moderate", "aggressive"],
-                        index=["conservative", "moderate", "aggressive"].index(profile.get('risk_tolerance', 'conservative'))
+                        index=["conservative", "moderate", "aggressive"].index(profile.get('risk_tolerance', 'conservative')),
+                        help="Your comfort level with tax strategies"
                     )
                 
-                with col4:
+                with col2:
                     tax_complexity_level = st.selectbox(
-                        "Tax Knowledge Level",
+                        "🧠 Tax Knowledge Level",
                         ["beginner", "intermediate", "advanced"],
-                        index=["beginner", "intermediate", "advanced"].index(profile.get('tax_complexity_level', 'beginner'))
+                        index=["beginner", "intermediate", "advanced"].index(profile.get('tax_complexity_level', 'beginner')),
+                        help="Your level of tax knowledge"
                     )
                 
-                communication_style = st.selectbox(
-                    "Communication Style",
-                    ["friendly", "professional", "detailed", "concise"],
-                    index=["friendly", "professional", "detailed", "concise"].index(profile.get('preferred_communication_style', 'friendly'))
-                )
+                with col3:
+                    communication_style = st.selectbox(
+                        "💬 Communication Style",
+                        ["friendly", "professional", "detailed", "concise"],
+                        index=["friendly", "professional", "detailed", "concise"].index(profile.get('preferred_communication_style', 'friendly')),
+                        help="How would you like us to communicate with you?"
+                    )
                 
+                # === TAX GOALS ===
+                st.markdown('<div class="section-header">🎯 Tax Goals</div>', unsafe_allow_html=True)
+                
+                # Create visual goal selection
+                goals_options = {
+                    "maximize_deductions": {"icon": "💰", "label": "Maximize Deductions", "desc": "Find all possible tax deductions"},
+                    "reduce_tax_liability": {"icon": "📉", "label": "Reduce Tax Liability", "desc": "Lower your overall tax burden"},
+                    "plan_for_retirement": {"icon": "🏦", "label": "Plan for Retirement", "desc": "Tax-efficient retirement planning"},
+                    "optimize_investments": {"icon": "📈", "label": "Optimize Investments", "desc": "Investment tax optimization"},
+                    "minimize_audit_risk": {"icon": "🛡️", "label": "Minimize Audit Risk", "desc": "Keep tax filings audit-safe"}
+                }
+                
+                st.markdown("Select your main tax goals:")
                 tax_goals = st.multiselect(
                     "Tax Goals",
-                    ["maximize_deductions", "reduce_tax_liability", "plan_for_retirement", "optimize_investments", "minimize_audit_risk"],
-                    default=profile.get('tax_goals', ["maximize_deductions", "reduce_tax_liability"])
+                    options=list(goals_options.keys()),
+                    default=profile.get('tax_goals', ["maximize_deductions", "reduce_tax_liability"]),
+                    format_func=lambda x: f"{goals_options[x]['icon']} {goals_options[x]['label']} - {goals_options[x]['desc']}",
+                    help="Select all goals that apply to your situation"
                 )
                 
-                if st.form_submit_button("Update Profile", use_container_width=True):
+                # === PROFILE SUMMARY ===
+                if st.session_state.get('show_profile_summary', False):
+                    st.markdown('<div class="section-header">📊 Profile Summary</div>', unsafe_allow_html=True)
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.markdown(f'''
+                        <div class="profile-card">
+                            <div class="metric-icon">💼</div>
+                            <div class="metric-label">Employment</div>
+                            <div class="metric-value">{employment_status.replace('_', ' ').title()}</div>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                    
+                    with col2:
+                        st.markdown(f'''
+                        <div class="tax-card">
+                            <div class="metric-icon">💵</div>
+                            <div class="metric-label">Annual Income</div>
+                            <div class="metric-value">€{annual_income:,.0f}</div>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                    
+                    with col3:
+                        risk_icon = {"conservative": "🛡️", "moderate": "⚖️", "aggressive": "🚀"}.get(risk_tolerance, "❓")
+                        st.markdown(f'''
+                        <div class="expense-card">
+                            <div class="metric-icon">{risk_icon}</div>
+                            <div class="metric-label">Risk Level</div>
+                            <div class="metric-value">{risk_tolerance.title()}</div>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                    
+                    with col4:
+                        st.markdown(f'''
+                        <div class="profile-card">
+                            <div class="metric-icon">🎯</div>
+                            <div class="metric-label">Tax Goals</div>
+                            <div class="metric-value">{len(tax_goals)} Selected</div>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                
+                # === ACTION BUTTONS ===
+                st.markdown("---")
+                col1, col2, col3 = st.columns([1, 2, 1])
+                
+                with col2:
+                    update_button = st.form_submit_button(
+                        "💾 Update Profile", 
+                        use_container_width=True,
+                        help="Save your profile changes"
+                    )
+                
+                if update_button:
                     # Create updated profile data
                     updated_profile_data = {
                         "employment_status": employment_status,
@@ -1549,11 +1696,33 @@ class TaxFixFrontend:
                     response = self.create_user_profile(updated_profile_data)
                     
                     if "error" not in response and response.get("success"):
-                        st.success("Profile updated successfully!")
+                        st.success("🎉 Profile updated successfully!")
                         st.session_state.user_profile = response.get("profile")
+                        st.session_state.show_profile_summary = True
                         st.rerun()
                     else:
-                        st.error(f"Error updating profile: {response.get('error', 'Unknown error')}")
+                        st.error(f"❌ Error updating profile: {response.get('error', 'Unknown error')}")
+            
+            # === QUICK ACTIONS ===
+            st.markdown('<div class="section-header">🚀 Quick Actions</div>', unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if st.button("📊 View Dashboard", use_container_width=True):
+                    st.session_state.switch_to_dashboard = True
+                    st.rerun()
+            
+            with col2:
+                if st.button("💬 Get Tax Advice", use_container_width=True):
+                    st.session_state.switch_to_chat = True
+                    st.session_state.prefill_message = "Based on my profile, what tax advice do you have for me?"
+                    st.rerun()
+            
+            with col3:
+                if st.button("🔍 Profile Summary", use_container_width=True):
+                    st.session_state.show_profile_summary = not st.session_state.get('show_profile_summary', False)
+                    st.rerun()
+                    
         else:
             st.warning("Profile not found. Please contact support.")
     
@@ -1604,10 +1773,13 @@ class TaxFixFrontend:
             # Render sidebar
             self.render_sidebar()
             
-            # Handle chat switching from dashboard
+            # Handle switching between tabs
             if st.session_state.get('switch_to_chat', False):
                 selected = "Chat"
                 st.session_state.switch_to_chat = False
+            elif st.session_state.get('switch_to_dashboard', False):
+                selected = "Dashboard"
+                st.session_state.switch_to_dashboard = False
             
             # Render selected page
             if selected == "Chat":
