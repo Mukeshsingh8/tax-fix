@@ -62,6 +62,83 @@ st.markdown("""
         border-left: 4px solid #667eea;
     }
     
+    .profile-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .tax-card {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 15px rgba(79, 172, 254, 0.3);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .tax-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px rgba(79, 172, 254, 0.4);
+    }
+    
+    .expense-card {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 15px rgba(250, 112, 154, 0.3);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .expense-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px rgba(250, 112, 154, 0.4);
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .metric-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .metric-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .section-header {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        margin: 2rem 0 1rem 0;
+        font-size: 1.2rem;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
     .sidebar-content {
         background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
         padding: 1rem;
@@ -922,63 +999,108 @@ class TaxFixFrontend:
             return
         
         # === PROFILE OVERVIEW SECTION ===
-        st.markdown("#### 👤 Profile Overview")
+        st.markdown('<div class="section-header">👤 Profile Overview</div>', unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.metric("Employment Status", profile.get('employment_status', 'Not set').replace('_', ' ').title())
-            st.markdown('</div>', unsafe_allow_html=True)
+            employment_status = profile.get('employment_status', 'Not set').replace('_', ' ').title()
+            st.markdown(f'''
+            <div class="profile-card">
+                <div class="metric-icon">💼</div>
+                <div class="metric-label">Employment</div>
+                <div class="metric-value">{employment_status}</div>
+            </div>
+            ''', unsafe_allow_html=True)
         
         with col2:
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.metric("Filing Status", profile.get('filing_status', 'Not set').replace('_', ' ').title())
-            st.markdown('</div>', unsafe_allow_html=True)
+            filing_status = profile.get('filing_status', 'Not set').replace('_', ' ').title()
+            st.markdown(f'''
+            <div class="profile-card">
+                <div class="metric-icon">📋</div>
+                <div class="metric-label">Filing Status</div>
+                <div class="metric-value">{filing_status}</div>
+            </div>
+            ''', unsafe_allow_html=True)
         
         with col3:
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.metric("Dependents", str(profile.get('dependents', 0)))
-            st.markdown('</div>', unsafe_allow_html=True)
+            dependents = profile.get('dependents', 0)
+            dependents_icon = "👨‍👩‍👧‍👦" if dependents > 0 else "👤"
+            st.markdown(f'''
+            <div class="profile-card">
+                <div class="metric-icon">{dependents_icon}</div>
+                <div class="metric-label">Dependents</div>
+                <div class="metric-value">{dependents}</div>
+            </div>
+            ''', unsafe_allow_html=True)
         
         with col4:
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
             risk_tolerance = profile.get('risk_tolerance', 'Not set').title()
-            st.metric("Risk Tolerance", risk_tolerance)
-            st.markdown('</div>', unsafe_allow_html=True)
+            risk_icon = {"Conservative": "🛡️", "Moderate": "⚖️", "Aggressive": "🚀"}.get(risk_tolerance, "❓")
+            st.markdown(f'''
+            <div class="profile-card">
+                <div class="metric-icon">{risk_icon}</div>
+                <div class="metric-label">Risk Level</div>
+                <div class="metric-value">{risk_tolerance}</div>
+            </div>
+            ''', unsafe_allow_html=True)
 
         # === TAX SUMMARY SECTION ===
         if tax_calculations:
-            st.markdown("#### 💰 Tax Summary")
+            st.markdown('<div class="section-header">💰 Tax Summary</div>', unsafe_allow_html=True)
             col1, col2, col3, col4, col5 = st.columns(5)
             
             with col1:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.metric("Gross Income", f"€{tax_calculations.get('annual_income', 0):,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                gross_income = tax_calculations.get('annual_income', 0)
+                st.markdown(f'''
+                <div class="tax-card">
+                    <div class="metric-icon">💵</div>
+                    <div class="metric-label">Gross Income</div>
+                    <div class="metric-value">€{gross_income:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             with col2:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.metric("Taxable Income", f"€{tax_calculations.get('taxable_income', 0):,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                taxable_income = tax_calculations.get('taxable_income', 0)
+                st.markdown(f'''
+                <div class="tax-card">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-label">Taxable Income</div>
+                    <div class="metric-value">€{taxable_income:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             with col3:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.metric("Income Tax", f"€{tax_calculations.get('income_tax', 0):,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                income_tax = tax_calculations.get('income_tax', 0)
+                st.markdown(f'''
+                <div class="tax-card">
+                    <div class="metric-icon">🏛️</div>
+                    <div class="metric-label">Income Tax</div>
+                    <div class="metric-value">€{income_tax:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             with col4:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.metric("Total Tax", f"€{tax_calculations.get('total_tax', 0):,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                total_tax = tax_calculations.get('total_tax', 0)
+                st.markdown(f'''
+                <div class="tax-card">
+                    <div class="metric-icon">💸</div>
+                    <div class="metric-label">Total Tax</div>
+                    <div class="metric-value">€{total_tax:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             with col5:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
                 net_income = tax_calculations.get('net_income', 0)
-                st.metric("Net Income", f"€{net_income:,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown(f'''
+                <div class="tax-card">
+                    <div class="metric-icon">💎</div>
+                    <div class="metric-label">Net Income</div>
+                    <div class="metric-value">€{net_income:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
 
         # === EXPENSES SECTION ===
-        st.markdown("#### 💳 Expense Tracking")
+        st.markdown('<div class="section-header">💳 Expense Tracking</div>', unsafe_allow_html=True)
         
         expenses_summary = expenses_data.get("summary", {})
         expenses_list = expenses_data.get("items", [])
@@ -988,26 +1110,45 @@ class TaxFixFrontend:
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.metric("Total Expenses", str(expenses_summary.get("total_expenses", 0)))
-                st.markdown('</div>', unsafe_allow_html=True)
+                total_expenses = expenses_summary.get("total_expenses", 0)
+                st.markdown(f'''
+                <div class="expense-card">
+                    <div class="metric-icon">📋</div>
+                    <div class="metric-label">Total Expenses</div>
+                    <div class="metric-value">{total_expenses}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             with col2:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.metric("Total Amount", f"€{expenses_summary.get('total_amount', 0):,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                total_amount = expenses_summary.get('total_amount', 0)
+                st.markdown(f'''
+                <div class="expense-card">
+                    <div class="metric-icon">💰</div>
+                    <div class="metric-label">Total Amount</div>
+                    <div class="metric-value">€{total_amount:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             with col3:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.metric("Average Expense", f"€{expenses_summary.get('average_expense', 0):,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                average_expense = expenses_summary.get('average_expense', 0)
+                st.markdown(f'''
+                <div class="expense-card">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-label">Average Expense</div>
+                    <div class="metric-value">€{average_expense:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             with col4:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
                 # Calculate potential tax savings (simplified)
                 potential_savings = expenses_summary.get('total_amount', 0) * 0.3  # Rough estimate
-                st.metric("Est. Tax Savings", f"€{potential_savings:,.0f}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown(f'''
+                <div class="expense-card">
+                    <div class="metric-icon">💎</div>
+                    <div class="metric-label">Est. Tax Savings</div>
+                    <div class="metric-value">€{potential_savings:,.0f}</div>
+                </div>
+                ''', unsafe_allow_html=True)
             
             # Expense category breakdown
             col1, col2 = st.columns(2)
@@ -1070,16 +1211,33 @@ class TaxFixFrontend:
             else:
                 st.info("No expenses recorded yet")
         else:
-            st.info("💡 Start tracking your expenses to see detailed analytics and optimize your tax deductions!")
-            if st.button("💬 Ask AI to Help Track Expenses", use_container_width=True):
-                # Switch to chat tab with pre-filled message
-                st.session_state.switch_to_chat = True
-                st.session_state.prefill_message = "Help me track my tax-deductible expenses"
-                st.rerun()
+            st.markdown('''
+            <div style="
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+                padding: 2rem;
+                border-radius: 15px;
+                text-align: center;
+                margin: 1rem 0;
+                box-shadow: 0 8px 15px rgba(240, 147, 251, 0.3);
+            ">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">💡</div>
+                <h3>Start Your Tax Optimization Journey!</h3>
+                <p style="font-size: 1.1rem; margin: 1rem 0;">Track your expenses to unlock detailed analytics and maximize your tax deductions</p>
+            </div>
+            ''', unsafe_allow_html=True)
+            
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("💬 Ask AI to Help Track Expenses", use_container_width=True):
+                    # Switch to chat tab with pre-filled message
+                    st.session_state.switch_to_chat = True
+                    st.session_state.prefill_message = "Help me track my tax-deductible expenses"
+                    st.rerun()
 
         # === TAX BREAKDOWN VISUALIZATION ===
         if tax_calculations:
-            st.markdown("#### 📈 Tax Breakdown Analysis")
+            st.markdown('<div class="section-header">📈 Tax Breakdown Analysis</div>', unsafe_allow_html=True)
             
             col1, col2 = st.columns(2)
             
@@ -1130,7 +1288,7 @@ class TaxFixFrontend:
                 st.plotly_chart(fig, use_container_width=True)
 
         # === OPTIMIZATION SUGGESTIONS ===
-        st.markdown("#### 💡 Smart Tax Optimization")
+        st.markdown('<div class="section-header">💡 Smart Tax Optimization</div>', unsafe_allow_html=True)
         
         suggestions = []
         
@@ -1191,7 +1349,7 @@ class TaxFixFrontend:
                         st.rerun()
         
         # === ACTION BUTTONS ===
-        st.markdown("#### 🚀 Quick Actions")
+        st.markdown('<div class="section-header">🚀 Quick Actions</div>', unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
