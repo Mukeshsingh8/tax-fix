@@ -48,7 +48,7 @@ class MemoryService(BaseService, DatabaseMixin):
         except Exception as e:
             self.logger.warning(f"Error during Redis disconnect: {e}")
 
-    async def _ensure(self) -> bool:
+    async def ensure(self) -> bool:
         """Ensure we have a usable client (lazy connect if needed)."""
         if self.redis_client is None:
             try:
@@ -60,24 +60,24 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- Keys ---------------------------------------------------------------
 
     @staticmethod
-    def _k_session(session_id: str) -> str: return f"session:{session_id}"
+    def k_session(session_id: str) -> str: return f"session:{session_id}"
     @staticmethod
-    def _k_context(session_id: str) -> str: return f"context:{session_id}"
+    def k_context(session_id: str) -> str: return f"context:{session_id}"
     @staticmethod
-    def _k_messages(session_id: str) -> str: return f"messages:{session_id}"
+    def k_messages(session_id: str) -> str: return f"messages:{session_id}"
     @staticmethod
-    def _k_history(conv_id: str) -> str: return f"conversation_history:{conv_id}"
+    def k_history(conv_id: str) -> str: return f"conversation_history:{conv_id}"
     @staticmethod
-    def _k_profile(user_id: str) -> str: return f"profile:{user_id}"
+    def k_profile(user_id: str) -> str: return f"profile:{user_id}"
     @staticmethod
-    def _k_agent(session_id: str, agent_type: str) -> str: return f"agent_state:{session_id}:{agent_type}"
+    def k_agent(session_id: str, agent_type: str) -> str: return f"agent_state:{session_id}:{agent_type}"
     @staticmethod
-    def _k_user_session(user_id: str) -> str: return f"user_session:{user_id}"
+    def k_user_session(user_id: str) -> str: return f"user_session:{user_id}"
 
     # ---- Session Management -------------------------------------------------
 
     async def create_session(self, session_id: str, user_id: str) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
             data = {
@@ -85,7 +85,7 @@ class MemoryService(BaseService, DatabaseMixin):
                 "created_at": _utc_now_iso(),
                 "last_activity": _utc_now_iso(),
             }
-            key = self._k_session(session_id)
+            key = self.k_session(session_id)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.hset(key, mapping=data)
                 pipe.expire(key, self.settings.short_term_memory_ttl)
@@ -96,20 +96,20 @@ class MemoryService(BaseService, DatabaseMixin):
             raise
 
     async def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
-        if not await self._ensure():
+        if not await self.ensure():
             return None
         try:
-            data = await self.redis_client.hgetall(self._k_session(session_id))
+            data = await self.redis_client.hgetall(self.k_session(session_id))
             return data or None
         except Exception as e:
             self.logger.error(f"Error getting session: {e}")
             return None
 
     async def update_session_activity(self, session_id: str) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            key = self._k_session(session_id)
+            key = self.k_session(session_id)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.hset(key, "last_activity", _utc_now_iso())
                 pipe.expire(key, self.settings.short_term_memory_ttl)
@@ -120,10 +120,10 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- Conversation Context ----------------------------------------------
 
     async def store_conversation_context(self, session_id: str, context: Dict[str, Any]) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            key = self._k_context(session_id)
+            key = self.k_context(session_id)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.set(key, json.dumps(context, default=str))
                 pipe.expire(key, self.settings.short_term_memory_ttl)
@@ -133,10 +133,10 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error storing conversation context: {e}")
 
     async def get_conversation_context(self, session_id: str) -> Optional[Dict[str, Any]]:
-        if not await self._ensure():
+        if not await self.ensure():
             return None
         try:
-            raw = await self.redis_client.get(self._k_context(session_id))
+            raw = await self.redis_client.get(self.k_context(session_id))
             return json_to_dict(raw) or None
         except Exception as e:
             self.logger.error(f"Error getting conversation context: {e}")
@@ -153,10 +153,10 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- Message History (short-term) --------------------------------------
 
     async def store_message(self, session_id: str, message: Message) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            key = self._k_messages(session_id)
+            key = self.k_messages(session_id)
             raw = model_to_json(message)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.lpush(key, raw)
@@ -168,10 +168,10 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error storing message: {e}")
 
     async def get_recent_messages(self, session_id: str, limit: int = 10) -> List[Message]:
-        if not await self._ensure():
+        if not await self.ensure():
             return []
         try:
-            key = self._k_messages(session_id)
+            key = self.k_messages(session_id)
             rows = await self.redis_client.lrange(key, 0, max(0, limit - 1))
             out: List[Message] = []
             for s in rows:
@@ -187,10 +187,10 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- Conversation History Cache ----------------------------------------
 
     async def cache_conversation_history(self, conversation_id: str, messages: List[Message]) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            key = self._k_history(conversation_id)
+            key = self.k_history(conversation_id)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.delete(key)
                 # store newest last → we’ll LPUSH reversed for fast prepend later
@@ -204,10 +204,10 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error caching conversation history: {e}")
 
     async def get_cached_conversation_history(self, conversation_id: str, limit: int = 10) -> List[Message]:
-        if not await self._ensure():
+        if not await self.ensure():
             return []
         try:
-            key = self._k_history(conversation_id)
+            key = self.k_history(conversation_id)
             # get last N (chronological order)
             rows = await self.redis_client.lrange(key, -limit, -1)
             out: List[Message] = []
@@ -223,10 +223,10 @@ class MemoryService(BaseService, DatabaseMixin):
             return []
 
     async def add_message_to_conversation_cache(self, conversation_id: str, message: Message) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            key = self._k_history(conversation_id)
+            key = self.k_history(conversation_id)
             raw = model_to_json(message)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.rpush(key, raw)  # keep chronological order
@@ -240,10 +240,10 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- User Profile Cache -------------------------------------------------
 
     async def cache_user_profile(self, user_id: str, profile: UserProfile) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            key = self._k_profile(user_id)
+            key = self.k_profile(user_id)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.set(key, model_to_json(profile))
                 pipe.expire(key, self.settings.short_term_memory_ttl)
@@ -253,10 +253,10 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error caching user profile: {e}")
 
     async def get_cached_user_profile(self, user_id: str) -> Optional[UserProfile]:
-        if not await self._ensure():
+        if not await self.ensure():
             return None
         try:
-            raw = await self.redis_client.get(self._k_profile(user_id))
+            raw = await self.redis_client.get(self.k_profile(user_id))
             if not raw:
                 return None
             return UserProfile(**json_to_dict(raw))
@@ -267,10 +267,10 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- Agent State --------------------------------------------------------
 
     async def store_agent_state(self, session_id: str, agent_type: str, state: Dict[str, Any]) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            key = self._k_agent(session_id, agent_type)
+            key = self.k_agent(session_id, agent_type)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.set(key, json.dumps(state, default=str))
                 pipe.expire(key, self.settings.short_term_memory_ttl)
@@ -280,10 +280,10 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error storing agent state: {e}")
 
     async def get_agent_state(self, session_id: str, agent_type: str) -> Optional[Dict[str, Any]]:
-        if not await self._ensure():
+        if not await self.ensure():
             return None
         try:
-            raw = await self.redis_client.get(self._k_agent(session_id, agent_type))
+            raw = await self.redis_client.get(self.k_agent(session_id, agent_type))
             return json_to_dict(raw) or None
         except Exception as e:
             self.logger.error(f"Error getting agent state: {e}")
@@ -292,7 +292,7 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- Temporary Data -----------------------------------------------------
 
     async def store_temp_data(self, key: str, data: Any, ttl: int = 300) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
             async with self.redis_client.pipeline(transaction=False) as pipe:
@@ -304,7 +304,7 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error storing temporary data: {e}")
 
     async def get_temp_data(self, key: str) -> Optional[Any]:
-        if not await self._ensure():
+        if not await self.ensure():
             return None
         try:
             raw = await self.redis_client.get(key)
@@ -316,13 +316,13 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- Cache Management ---------------------------------------------------
 
     async def clear_session_cache(self, session_id: str) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
             patterns = [
-                self._k_session(session_id),
-                self._k_context(session_id),
-                self._k_messages(session_id),
+                self.k_session(session_id),
+                self.k_context(session_id),
+                self.k_messages(session_id),
                 f"agent_state:{session_id}:*",
                 f"conversation_history:{session_id}*",  # if conv_id == session_id in your app
             ]
@@ -337,7 +337,7 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error clearing session cache: {e}")
 
     async def get_cache_stats(self) -> Dict[str, Any]:
-        if not await self._ensure():
+        if not await self.ensure():
             return {}
         try:
             info = await self.redis_client.info()
@@ -355,13 +355,13 @@ class MemoryService(BaseService, DatabaseMixin):
     # ---- User Session (Auth helper) ----------------------------------------
 
     async def store_user_session(self, session_data: Dict[str, Any]) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
             user_id = session_data.get("user_id")
             if not user_id:
                 raise ValueError("user_id is required for session storage")
-            key = self._k_user_session(user_id)
+            key = self.k_user_session(user_id)
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 pipe.hset(key, mapping=session_data)
                 pipe.expire(key, self.settings.short_term_memory_ttl)
@@ -371,20 +371,20 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error storing user session: {e}")
 
     async def get_user_session(self, user_id: str) -> Optional[Dict[str, Any]]:
-        if not await self._ensure():
+        if not await self.ensure():
             return None
         try:
-            data = await self.redis_client.hgetall(self._k_user_session(user_id))
+            data = await self.redis_client.hgetall(self.k_user_session(user_id))
             return data or None
         except Exception as e:
             self.logger.error(f"Error getting user session: {e}")
             return None
 
     async def delete_user_session(self, user_id: str) -> None:
-        if not await self._ensure():
+        if not await self.ensure():
             return
         try:
-            await self.redis_client.delete(self._k_user_session(user_id))
+            await self.redis_client.delete(self.k_user_session(user_id))
             self.logger.info(f"Deleted user session: {user_id}")
         except Exception as e:
             self.logger.error(f"Error deleting user session: {e}")

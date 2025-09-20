@@ -61,9 +61,9 @@ Focus on action, not long explanations.
         decision = await self.decision_maker.decide_action_json(message, context, user_profile)
 
         # Execute the decided action
-        return await self._execute_action(decision, message, user_id, context)
+        return await self.execute_action(decision, message, user_id, context)
 
-    async def _execute_action(
+    async def execute_action(
         self,
         decision: Dict[str, Any],
         message: Message,
@@ -77,16 +77,16 @@ Focus on action, not long explanations.
 
         try:
             if action == "add_expense":
-                return await self._handle_add_expense(expense_data, user_id, context, message)
+                return await self.handle_add_expense(expense_data, user_id, context, message)
             
             elif action == "suggest_expense":
-                return await self._handle_suggest_expense(expense_data, context, confidence, message)
+                return await self.handle_suggest_expense(expense_data, context, confidence, message)
             
             elif action == "update_expense":
                 return await self.expense_manager.update_expense(expense_data or {}, user_id, context)
             
             elif action == "delete_expense":
-                expense_id = self._extract_expense_id(message.content, expense_data)
+                expense_id = self.extract_expense_id(message.content, expense_data)
                 return await self.expense_manager.delete_expense(expense_id, user_id, context)
             
             elif action == "read_expenses":
@@ -96,7 +96,7 @@ Focus on action, not long explanations.
                 return await self.expense_manager.read_expenses(user_id, context, limit)
             
             else:  # general_guidance
-                return await self._handle_general_guidance(message, context, decision.get("reasoning", ""))
+                return await self.handle_general_guidance(message, context, decision.get("reasoning", ""))
 
         except Exception as e:
             self.logger.error(f"Action execution error: {e}")
@@ -106,7 +106,7 @@ Focus on action, not long explanations.
                 reasoning=f"Error: {str(e)}",
             )
 
-    async def _handle_add_expense(
+    async def handle_add_expense(
         self,
         expense_data: Optional[Dict[str, Any]],
         user_id: str,
@@ -140,7 +140,7 @@ Focus on action, not long explanations.
         
         return result
 
-    async def _handle_suggest_expense(
+    async def handle_suggest_expense(
         self,
         expense_data: Optional[Dict[str, Any]],
         context: Dict[str, Any],
@@ -156,7 +156,7 @@ Focus on action, not long explanations.
             expense_data or {}, context, confidence
         )
 
-    async def _handle_general_guidance(
+    async def handle_general_guidance(
         self,
         message: Message,
         context: Dict[str, Any],
@@ -165,7 +165,7 @@ Focus on action, not long explanations.
         """Handle general guidance requests."""
         try:
             # Determine guidance type based on message content
-            guidance_type = self._determine_guidance_type(message.content)
+            guidance_type = self.determine_guidance_type(message.content)
             
             # Generate guidance content
             content = await self.decision_maker.create_guidance_response(
@@ -192,7 +192,7 @@ Focus on action, not long explanations.
                 reasoning="Fallback guidance"
             )
 
-    def _determine_guidance_type(self, content: str) -> str:
+    def determine_guidance_type(self, content: str) -> str:
         """Determine the type of guidance needed."""
         content_lower = content.lower()
         
@@ -203,7 +203,7 @@ Focus on action, not long explanations.
         else:
             return "general"
 
-    def _extract_expense_id(self, content: str, expense_data: Optional[Dict[str, Any]]) -> Optional[str]:
+    def extract_expense_id(self, content: str, expense_data: Optional[Dict[str, Any]]) -> Optional[str]:
         """Extract expense ID from content or expense data."""
         if expense_data and "expense_id" in expense_data:
             return expense_data["expense_id"]

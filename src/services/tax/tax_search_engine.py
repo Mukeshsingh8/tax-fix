@@ -45,7 +45,7 @@ class TaxSearchEngine(BaseService):
             scored_rules = []
             
             for rule in rules:
-                score = self._score_rule_relevance(rule, query_lower)
+                score = self.score_rule_relevance(rule, query_lower)
                 if score > 0:
                     scored_rules.append((score, rule))
             
@@ -81,7 +81,7 @@ class TaxSearchEngine(BaseService):
             scored_deductions = []
             
             for deduction in deductions:
-                score = self._score_deduction_relevance(deduction, query_lower)
+                score = self.score_deduction_relevance(deduction, query_lower)
                 if score > 0:
                     scored_deductions.append((score, deduction))
             
@@ -115,7 +115,7 @@ class TaxSearchEngine(BaseService):
             
             # Apply profile-based boosting if profile provided
             if profile:
-                deductions = self._apply_profile_boosting(deductions, profile)
+                deductions = self.apply_profile_boosting(deductions, profile)
             
             result = {"rules": rules, "deductions": deductions}
             
@@ -129,7 +129,7 @@ class TaxSearchEngine(BaseService):
             self.log_operation_error("retrieve", e)
             return {"rules": [], "deductions": []}
     
-    def _score_rule_relevance(self, rule: TaxRule, query_lower: str) -> float:
+    def score_rule_relevance(self, rule: TaxRule, query_lower: str) -> float:
         """
         Score relevance of a tax rule for the query.
         
@@ -173,7 +173,7 @@ class TaxSearchEngine(BaseService):
         
         return score
     
-    def _score_deduction_relevance(self, deduction: Deduction, query_lower: str) -> float:
+    def score_deduction_relevance(self, deduction: Deduction, query_lower: str) -> float:
         """
         Score relevance of a deduction for the query.
         
@@ -217,7 +217,7 @@ class TaxSearchEngine(BaseService):
         
         return score
     
-    def _apply_profile_boosting(self, deductions: List[Deduction], profile: Dict[str, Any]) -> List[Deduction]:
+    def apply_profile_boosting(self, deductions: List[Deduction], profile: Dict[str, Any]) -> List[Deduction]:
         """
         Apply profile-based boosting to deduction results.
         

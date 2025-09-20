@@ -22,7 +22,7 @@ _settings = get_settings()
 # Helpers
 # -------------------------
 
-def _clean_title(s: str, max_len: int = 50) -> str:
+def clean_title(s: str, max_len: int = 50) -> str:
     """Trim, strip quotes/newlines, enforce max length."""
     t = (s or "").strip().replace("\n", " ").replace("\r", " ")
     t = t.strip(' "\'')
@@ -32,13 +32,13 @@ def _clean_title(s: str, max_len: int = 50) -> str:
     return t or "Tax Consultation"
 
 
-def _tokenize(text: str) -> List[str]:
+def tokenize(text: str) -> List[str]:
     return re.findall(r"[a-zA-ZäöüÄÖÜß]+(?:-[a-zA-ZäöüÄÖÜß]+)?", text.lower())
 
 
-def _score_keywords(text: str, vocab: Iterable[str]) -> List[Tuple[str, int]]:
+def score_keywords(text: str, vocab: Iterable[str]) -> List[Tuple[str, int]]:
     """Very simple frequency scoring with vocab filtering."""
-    tokens = _tokenize(text)
+    tokens = tokenize(text)
     vocab_set = set(vocab)
     counts: Dict[str, int] = {}
     for tok in tokens:
@@ -47,7 +47,7 @@ def _score_keywords(text: str, vocab: Iterable[str]) -> List[Tuple[str, int]]:
     return sorted(counts.items(), key=lambda x: (-x[1], x[0]))
 
 
-def _title_from_keywords(keywords: List[str]) -> str:
+def title_from_keywords(keywords: List[str]) -> str:
     """Compose a compact title from top keywords."""
     if not keywords:
         return "Tax Consultation"
@@ -134,7 +134,7 @@ class ConversationTools:
                     ],
                     model=self.default_model,
                 )
-                title = _clean_title(llm_resp)
+                title = clean_title(llm_resp)
                 if title and title.lower() != "title:":
                     logger.info(f"Generated title via LLM for {conversation_id}: {title}")
                     return title
@@ -142,9 +142,9 @@ class ConversationTools:
                 logger.warning(f"LLM title generation failed, falling back. Err: {llm_err}")
 
             # Fallback: keyword-based title
-            scores = _score_keywords(context_text, _TAX_VOCAB)
+            scores = score_keywords(context_text, _TAX_VOCAB)
             top_terms = [k for k, _ in scores]
-            title_fb = _clean_title(_title_from_keywords(top_terms))
+            title_fb = clean_title(title_from_keywords(top_terms))
             logger.info(f"Generated title via fallback for {conversation_id}: {title_fb}")
             return title_fb
 
@@ -158,7 +158,7 @@ class ConversationTools:
             convo = await self.database.get_conversation(conversation_id)
             if not convo:
                 return False
-            convo.title = _clean_title(title)
+            convo.title = clean_title(title)
             await self.database.update_conversation(convo)
             logger.info(f"Updated conversation title: {conversation_id} -> {convo.title}")
             return True
@@ -168,7 +168,7 @@ class ConversationTools:
 
     # --------------------- Auto-Update Hooks --------------------- #
 
-    async def _get_message_count(self, conversation_id: str) -> int:
+    async def get_message_count(self, conversation_id: str) -> int:
         """Try a DB count, fallback to fetching a chunk."""
         try:
             if hasattr(self.database, "count_conversation_messages"):
@@ -184,10 +184,10 @@ class ConversationTools:
             logger.debug(f"get_conversation_messages fallback failed: {e}")
             return 0
 
-    def _last_update_key(self, conversation_id: str) -> str:
+    def last_update_key(self, conversation_id: str) -> str:
         return f"conv:title:last_update_ts:{conversation_id}"
 
-    async def _should_update_title_now(self, conversation_id: str, message_count: int) -> bool:
+    async def should_update_title_now(self, conversation_id: str, message_count: int) -> bool:
         """Gate by message threshold + min interval if memory is available."""
         if message_count < self.auto_update_threshold:
             return False
@@ -198,7 +198,7 @@ class ConversationTools:
 
         if self.memory:
             try:
-                last_ts = await self.memory.get_temp_data(self._last_update_key(conversation_id))
+                last_ts = await self.memory.get_temp_data(self.last_update_key(conversation_id))
                 now = time.time()
                 if isinstance(last_ts, (int, float)):
                     if now - float(last_ts) < self.auto_update_min_interval_sec:
@@ -210,13 +210,13 @@ class ConversationTools:
         # No memory service = allow updates on threshold
         return True
 
-    async def _record_title_update(self, conversation_id: str) -> None:
+    async def record_title_update(self, conversation_id: str) -> None:
         """Persist last update timestamp (if memory available)."""
         if not self.memory:
             return
         try:
             await self.memory.store_temp_data(
-                self._last_update_key(conversation_id),
+                self.last_update_key(conversation_id),
                 time.time(),
                 ttl=max(self.auto_update_min_interval_sec * 4, 3600),  # keep a bit longer than interval
             )
@@ -234,15 +234,15 @@ class ConversationTools:
         Returns the new title if updated, else None.
         """
         try:
-            count = await self._get_message_count(conversation_id)
-            if not force and not await self._should_update_title_now(conversation_id, count):
+            count = await self.get_message_count(conversation_id)
+            if not force and not await self.should_update_title_now(conversation_id, count):
                 return None
 
             # Use a slightly larger window when refreshing mid-chat
             title = await self.analyze_conversation_for_title(conversation_id, max_messages=12)
             ok = await self.update_conversation_title(conversation_id, title)
             if ok:
-                await self._record_title_update(conversation_id)
+                await self.record_title_update(conversation_id)
                 return title
             return None
         except Exception as e:
@@ -257,7 +257,7 @@ class ConversationTools:
         try:
             title = await self.analyze_conversation_for_title(conversation_id, max_messages=25)
             await self.update_conversation_title(conversation_id, title)
-            await self._record_title_update(conversation_id)
+            await self.record_title_update(conversation_id)
             return title
         except Exception as e:
             logger.error(f"finalize_conversation_title error: {e}")
@@ -287,7 +287,7 @@ class ConversationTools:
                 last_activity = None
 
             all_text = " ".join(m.content for m in msgs if m and getattr(m, "content", ""))[:5000]
-            scored = _score_keywords(all_text, _TAX_VOCAB)
+            scored = score_keywords(all_text, _TAX_VOCAB)
             main_topics = [k for k, _ in scored][:5]
             summary = f"Conversation about {', '.join(main_topics[:3])}" if main_topics else "General tax consultation"
 

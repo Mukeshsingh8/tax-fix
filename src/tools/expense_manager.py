@@ -77,7 +77,7 @@ class ExpenseManager:
             # Store as pending expense for confirmation
             session_id = context.get("session_id")
             if session_id:
-                await self._set_pending_expense(session_id, expense_data)
+                await self.set_pending_expense(session_id, expense_data)
 
             amount_str = format_currency(amount) if amount > 0 else "amount not specified"
             
@@ -281,7 +281,7 @@ class ExpenseManager:
             )
 
     # Pending expense helpers
-    async def _set_pending_expense(self, session_id: str, expense: Dict[str, Any]) -> None:
+    async def set_pending_expense(self, session_id: str, expense: Dict[str, Any]) -> None:
         """Store pending expense in session context."""
         try:
             await self.memory_service.update_conversation_context(

@@ -78,15 +78,15 @@ class TaxCalculationEngine(BaseService):
                 "gross_income": income,
                 "filing_status": filing_status,
                 "dependents": dependents,
-                "basic_allowance": self._get_basic_allowance(filing_status),
-                "work_expenses": self._calculate_work_expenses(income),
-                "special_expenses": self._calculate_special_expenses(income, health_insurance_type),
-                "child_allowances": self._calculate_child_allowances(dependents),
+                "basic_allowance": self.get_basic_allowance(filing_status),
+                "work_expenses": self.calculate_work_expenses(income),
+                "special_expenses": self.calculate_special_expenses(income, health_insurance_type),
+                "child_allowances": self.calculate_child_allowances(dependents),
                 "taxable_income": 0.0,
                 "income_tax": 0.0,
                 "solidarity_surcharge": 0.0,
                 "church_tax": 0.0,
-                "social_security": self._calculate_social_security(income, age),
+                "social_security": self.calculate_social_security(income, age),
                 "total_tax_burden": 0.0,
                 "net_income": 0.0,
                 "effective_tax_rate": 0.0,
@@ -99,10 +99,10 @@ class TaxCalculationEngine(BaseService):
                                          result["child_allowances"])
             
             # Calculate income tax
-            result["income_tax"] = self._calculate_income_tax(result["taxable_income"])
+            result["income_tax"] = self.calculate_income_tax(result["taxable_income"])
             
             # Calculate solidarity surcharge (5.5% of income tax, with exemption)
-            result["solidarity_surcharge"] = self._calculate_solidarity_surcharge(result["income_tax"])
+            result["solidarity_surcharge"] = self.calculate_solidarity_surcharge(result["income_tax"])
             
             # Calculate church tax (8-9% of income tax, assuming 9% average)
             result["church_tax"] = result["income_tax"] * 0.09
@@ -116,7 +116,7 @@ class TaxCalculationEngine(BaseService):
             # Calculate rates
             if income > 0:
                 result["effective_tax_rate"] = (result["total_tax_burden"] / income) * 100
-                result["marginal_tax_rate"] = self._calculate_marginal_rate(result["taxable_income"]) * 100
+                result["marginal_tax_rate"] = self.calculate_marginal_rate(result["taxable_income"]) * 100
             
             self.log_operation_success(
                 "calculate_german_tax", 
@@ -128,7 +128,7 @@ class TaxCalculationEngine(BaseService):
         except Exception as e:
             self.log_operation_error("calculate_german_tax", e)
             # Return basic fallback calculation
-            return self._create_fallback_calculation(income, filing_status, dependents)
+            return self.create_fallback_calculation(income, filing_status, dependents)
     
     def calculate_net_income(self, gross_income: float, **kwargs) -> float:
         """
@@ -177,19 +177,19 @@ class TaxCalculationEngine(BaseService):
             self.logger.warning(f"Tax savings calculation failed: {e}")
             return {"deduction_amount": deduction_amount, "tax_savings": 0, "net_benefit": 0, "effective_savings_rate": 0}
     
-    def _get_basic_allowance(self, filing_status: str) -> float:
+    def get_basic_allowance(self, filing_status: str) -> float:
         """Get basic tax allowance based on filing status."""
         if filing_status == "married_jointly":
             return self.GRUNDFREIBETRAG * 2
         return self.GRUNDFREIBETRAG
     
-    def _calculate_work_expenses(self, income: float) -> float:
+    def calculate_work_expenses(self, income: float) -> float:
         """Calculate work-related expense deductions."""
         # For simplicity, return the standard deduction
         # In practice, this could be higher if actual expenses exceed the standard
         return self.WERBUNGSKOSTEN_PAUSCHALE
     
-    def _calculate_special_expenses(self, income: float, health_insurance_type: str) -> float:
+    def calculate_special_expenses(self, income: float, health_insurance_type: str) -> float:
         """Calculate special expenses (health insurance, etc.)."""
         if health_insurance_type == "statutory":
             # Simplified: assume standard health insurance contribution
@@ -198,12 +198,12 @@ class TaxCalculationEngine(BaseService):
             # Private insurance - use standard deduction
             return self.SONDERAUSGABEN_PAUSCHALE
     
-    def _calculate_child_allowances(self, dependents: int) -> float:
+    def calculate_child_allowances(self, dependents: int) -> float:
         """Calculate child allowances and benefits."""
         # Kinderfreibetrag for 2024: €6,384 per child
         return dependents * 6384
     
-    def _calculate_income_tax(self, taxable_income: float) -> float:
+    def calculate_income_tax(self, taxable_income: float) -> float:
         """Calculate income tax using German tax brackets."""
         if taxable_income <= 0:
             return 0
@@ -227,7 +227,7 @@ class TaxCalculationEngine(BaseService):
         
         return tax
     
-    def _calculate_solidarity_surcharge(self, income_tax: float) -> float:
+    def calculate_solidarity_surcharge(self, income_tax: float) -> float:
         """Calculate solidarity surcharge (Solidaritätszuschlag)."""
         # 5.5% of income tax, but with exemption threshold
         if income_tax <= 972:  # 2024 exemption threshold for single filers
@@ -238,7 +238,7 @@ class TaxCalculationEngine(BaseService):
         else:
             return income_tax * 0.055
     
-    def _calculate_social_security(self, income: float, age: int) -> Dict[str, float]:
+    def calculate_social_security(self, income: float, age: int) -> Dict[str, float]:
         """Calculate social security contributions."""
         # Simplified calculation - actual rates vary by state and insurance
         pension_rate = 0.093  # Employee portion
@@ -262,16 +262,16 @@ class TaxCalculationEngine(BaseService):
                      health_base * (health_rate + nursing_rate))
         }
     
-    def _calculate_marginal_rate(self, taxable_income: float) -> float:
+    def calculate_marginal_rate(self, taxable_income: float) -> float:
         """Calculate marginal tax rate for given income level."""
         for bracket in self.TAX_BRACKETS:
             if bracket["min"] <= taxable_income < bracket["max"]:
                 return bracket["rate"]
         return self.TAX_BRACKETS[-1]["rate"]  # Top bracket
     
-    def _create_fallback_calculation(self, income: float, filing_status: str, dependents: int) -> Dict[str, Any]:
+    def create_fallback_calculation(self, income: float, filing_status: str, dependents: int) -> Dict[str, Any]:
         """Create a simple fallback calculation if detailed calculation fails."""
-        basic_allowance = self._get_basic_allowance(filing_status)
+        basic_allowance = self.get_basic_allowance(filing_status)
         taxable_income = max(0, income - basic_allowance)
         estimated_tax = taxable_income * 0.25  # Rough estimate
         

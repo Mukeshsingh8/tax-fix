@@ -36,7 +36,7 @@ class User(BaseModel):
 
     # --- Validators (safe, non-breaking) ---
     @validator("email", "name", pre=True)
-    def _trim_str(cls, v):
+    def trim_str(cls, v):
         return v.strip() if isinstance(v, str) else v
 
     class Config:
@@ -85,7 +85,7 @@ class UserProfile(BaseModel):
 
     # --- Validators (safe, non-breaking) ---
     @validator("annual_income", pre=True)
-    def _to_float_nonneg(cls, v):
+    def to_float_nonneg(cls, v):
         if v is None or v == "":
             return None
         try:
@@ -95,7 +95,7 @@ class UserProfile(BaseModel):
         return max(0.0, fv)
 
     @validator("dependents", "conversation_count", pre=True)
-    def _nonneg_int(cls, v):
+    def nonneg_int(cls, v):
         try:
             iv = int(v)
         except Exception:
@@ -133,7 +133,7 @@ class TaxDocument(BaseModel):
 
     # --- Validators (safe, non-breaking) ---
     @validator("amount", pre=True)
-    def _amount_to_float_nonneg(cls, v):
+    def amount_to_float_nonneg(cls, v):
         if v is None or v == "":
             return None
         try:
@@ -143,7 +143,7 @@ class TaxDocument(BaseModel):
         return max(0.0, fv)
 
     @validator("description", pre=True)
-    def _desc_fallback(cls, v):
+    def desc_fallback(cls, v):
         if isinstance(v, str) and v.strip():
             return v.strip()
         return "Document"

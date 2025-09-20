@@ -27,7 +27,7 @@ class ActionDecisionMaker:
         """Decide what action to take based on the user's message."""
         try:
             # Build decision prompt
-            prompt = self._build_decision_prompt(message, context, user_profile)
+            prompt = self.build_decision_prompt(message, context, user_profile)
             
             # Get LLM decision
             messages = [
@@ -44,16 +44,16 @@ class ActionDecisionMaker:
 
             if response and isinstance(response, dict):
                 # Validate and enhance the response
-                return self._validate_and_enhance_decision(response, message)
+                return self.validate_and_enhance_decision(response, message)
             else:
                 self.logger.warning("LLM returned invalid decision, using fallback")
-                return self._fallback_decision(message)
+                return self.fallback_decision(message)
 
         except Exception as e:
             self.logger.error(f"Decision making error: {e}")
-            return self._fallback_decision(message)
+            return self.fallback_decision(message)
 
-    def _build_decision_prompt(
+    def build_decision_prompt(
         self,
         message: Message,
         context: Dict[str, Any],
@@ -107,7 +107,7 @@ Categories: office_equipment, software, travel, education, communication, vehicl
 Only extract expense_data if relevant to the action.
 """.strip()
 
-    def _validate_and_enhance_decision(
+    def validate_and_enhance_decision(
         self,
         decision: Dict[str, Any],
         message: Message
@@ -138,7 +138,7 @@ Only extract expense_data if relevant to the action.
 
             # Validate expense data structure
             if expense_data:
-                expense_data = self._validate_expense_data(expense_data)
+                expense_data = self.validate_expense_data(expense_data)
 
             return {
                 "action": action,
@@ -149,9 +149,9 @@ Only extract expense_data if relevant to the action.
 
         except Exception as e:
             self.logger.error(f"Decision validation error: {e}")
-            return self._fallback_decision(message)
+            return self.fallback_decision(message)
 
-    def _validate_expense_data(self, expense_data: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_expense_data(self, expense_data: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and clean expense data."""
         try:
             # Ensure required fields with defaults
@@ -188,7 +188,7 @@ Only extract expense_data if relevant to the action.
                 "date": datetime.now().strftime("%Y-%m-%d")
             }
 
-    def _fallback_decision(self, message: Message) -> Dict[str, Any]:
+    def fallback_decision(self, message: Message) -> Dict[str, Any]:
         """Create fallback decision when LLM fails."""
         try:
             text_lower = message.content.lower()

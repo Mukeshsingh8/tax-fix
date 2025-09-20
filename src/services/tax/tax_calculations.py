@@ -26,7 +26,7 @@ class TaxCalculator:
         Perform tax calculations if requested and data is available.
         """
         try:
-            if not self._is_calculation_request(message.content):
+            if not self.is_calculation_request(message.content):
                 return None
 
             if not user_profile or not user_profile.annual_income:
@@ -34,22 +34,22 @@ class TaxCalculator:
                 return None
 
             # Determine calculation type
-            calc_type = self._determine_calculation_type(message.content)
+            calc_type = self.determine_calculation_type(message.content)
             
             if calc_type == "net_income":
-                return await self._calculate_net_income(user_profile)
+                return await self.calculate_net_income(user_profile)
             elif calc_type == "tax_liability":
-                return await self._calculate_tax_liability(user_profile)
+                return await self.calculate_tax_liability(user_profile)
             elif calc_type == "deduction_savings":
-                return await self._calculate_deduction_savings(user_profile, context)
+                return await self.calculate_deduction_savings(user_profile, context)
             else:
-                return await self._calculate_comprehensive(user_profile)
+                return await self.calculate_comprehensive(user_profile)
 
         except Exception as e:
             self.logger.error(f"Tax calculation error: {e}")
             return None
 
-    def _is_calculation_request(self, text: str) -> bool:
+    def is_calculation_request(self, text: str) -> bool:
         """Check if user is requesting a calculation."""
         calc_keywords = [
             "calculate", "compute", "estimate", "how much",
@@ -58,7 +58,7 @@ class TaxCalculator:
         text_lower = text.lower()
         return any(keyword in text_lower for keyword in calc_keywords)
 
-    def _determine_calculation_type(self, text: str) -> str:
+    def determine_calculation_type(self, text: str) -> str:
         """Determine what type of calculation is being requested."""
         text_lower = text.lower()
         
@@ -71,7 +71,7 @@ class TaxCalculator:
         else:
             return "comprehensive"
 
-    async def _calculate_net_income(self, user_profile: DBUserProfile) -> Dict[str, Any]:
+    async def calculate_net_income(self, user_profile: DBUserProfile) -> Dict[str, Any]:
         """Calculate net income after taxes."""
         try:
             gross_income = float(user_profile.annual_income or 0)
@@ -81,7 +81,7 @@ class TaxCalculator:
             taxable_income = max(0, gross_income - tax_free_allowance)
             
             # Progressive tax rates (simplified)
-            tax_liability = self._calculate_progressive_tax(taxable_income)
+            tax_liability = self.calculate_progressive_tax(taxable_income)
             
             # Social contributions (approximate)
             social_contributions = gross_income * 0.20  # ~20% for social insurance
@@ -102,34 +102,34 @@ class TaxCalculator:
             self.logger.error(f"Net income calculation error: {e}")
             return {}
 
-    async def _calculate_tax_liability(self, user_profile: DBUserProfile) -> Dict[str, Any]:
+    async def calculate_tax_liability(self, user_profile: DBUserProfile) -> Dict[str, Any]:
         """Calculate tax liability only."""
         try:
             gross_income = float(user_profile.annual_income or 0)
             tax_free_allowance = 10908
             taxable_income = max(0, gross_income - tax_free_allowance)
-            tax_liability = self._calculate_progressive_tax(taxable_income)
+            tax_liability = self.calculate_progressive_tax(taxable_income)
             
             return {
                 "type": "tax_liability",
                 "gross_income": gross_income,
                 "taxable_income": taxable_income,
                 "tax_liability": tax_liability,
-                "marginal_tax_rate": self._get_marginal_rate(taxable_income),
+                "marginal_tax_rate": self.get_marginal_rate(taxable_income),
             }
         except Exception as e:
             self.logger.error(f"Tax liability calculation error: {e}")
             return {}
 
-    async def _calculate_deduction_savings(self, user_profile: DBUserProfile, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def calculate_deduction_savings(self, user_profile: DBUserProfile, context: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate potential savings from deductions."""
         try:
             # Get potential deductions
-            potential_deductions = self._estimate_potential_deductions(user_profile)
-            current_deductions = self._get_current_deductions(context)
+            potential_deductions = self.estimate_potential_deductions(user_profile)
+            current_deductions = self.get_current_deductions(context)
             
             additional_deductions = max(0, potential_deductions - current_deductions)
-            marginal_rate = self._get_marginal_rate(float(user_profile.annual_income or 0))
+            marginal_rate = self.get_marginal_rate(float(user_profile.annual_income or 0))
             tax_savings = additional_deductions * (marginal_rate / 100)
             
             return {
@@ -144,11 +144,11 @@ class TaxCalculator:
             self.logger.error(f"Deduction savings calculation error: {e}")
             return {}
 
-    async def _calculate_comprehensive(self, user_profile: DBUserProfile) -> Dict[str, Any]:
+    async def calculate_comprehensive(self, user_profile: DBUserProfile) -> Dict[str, Any]:
         """Comprehensive tax overview."""
         try:
-            net_calc = await self._calculate_net_income(user_profile)
-            tax_calc = await self._calculate_tax_liability(user_profile)
+            net_calc = await self.calculate_net_income(user_profile)
+            tax_calc = await self.calculate_tax_liability(user_profile)
             
             return {
                 "type": "comprehensive",
@@ -159,7 +159,7 @@ class TaxCalculator:
             self.logger.error(f"Comprehensive calculation error: {e}")
             return {}
 
-    def _calculate_progressive_tax(self, taxable_income: float) -> float:
+    def calculate_progressive_tax(self, taxable_income: float) -> float:
         """Calculate German progressive tax (simplified 2024 rates)."""
         if taxable_income <= 0:
             return 0
@@ -176,7 +176,7 @@ class TaxCalculator:
             # 45% top rate
             return taxable_income * 0.45 - 17602
 
-    def _get_marginal_rate(self, income: float) -> float:
+    def get_marginal_rate(self, income: float) -> float:
         """Get marginal tax rate for given income."""
         if income <= 10908:
             return 0
@@ -189,7 +189,7 @@ class TaxCalculator:
         else:
             return 45
 
-    def _estimate_potential_deductions(self, user_profile: DBUserProfile) -> float:
+    def estimate_potential_deductions(self, user_profile: DBUserProfile) -> float:
         """Estimate potential deductions based on profile."""
         base_deductions = 1230  # Standard work expense allowance
         
@@ -202,7 +202,7 @@ class TaxCalculator:
         
         return base_deductions
 
-    def _get_current_deductions(self, context: Dict[str, Any]) -> float:
+    def get_current_deductions(self, context: Dict[str, Any]) -> float:
         """Get current deductions from context."""
         # This would normally come from user's expense tracking
         return context.get("current_deductions", 1230)  # Default to standard allowance

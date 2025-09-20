@@ -50,18 +50,18 @@ class OrchestratorAgent(BaseAgent):
             )
 
         # Determine response type based on message content
-        if self._is_simple_greeting(text):
-            return await self._create_greeting_response(text, user_profile)
+        if self.is_simple_greeting(text):
+            return await self.create_greeting_response(text, user_profile)
         else:
-            return await self._create_general_response(text, user_profile)
+            return await self.create_general_response(text, user_profile)
 
-    def _is_simple_greeting(self, text: str) -> bool:
+    def is_simple_greeting(self, text: str) -> bool:
         """Check if message is a simple greeting."""
         text_lower = text.lower().strip()
         greetings = ['hi', 'hello', 'hey', 'hola', 'good morning', 'good afternoon', 'good evening']
         return any(greeting in text_lower for greeting in greetings) and len(text_lower.split()) <= 3
 
-    async def _create_greeting_response(self, user_input: str, user_profile: Optional[Dict[str, Any]]) -> AgentResponse:
+    async def create_greeting_response(self, user_input: str, user_profile: Optional[Dict[str, Any]]) -> AgentResponse:
         """Create simple greeting response."""
         name = user_profile.get("name") if user_profile else None
         
@@ -76,7 +76,7 @@ class OrchestratorAgent(BaseAgent):
             metadata={"response_type": "greeting"}
         )
 
-    async def _create_general_response(self, text: str, user_profile: Optional[Dict[str, Any]]) -> AgentResponse:
+    async def create_general_response(self, text: str, user_profile: Optional[Dict[str, Any]]) -> AgentResponse:
         """Create general response for tax questions."""
         profile_context = ""
         if user_profile:

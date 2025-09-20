@@ -62,7 +62,7 @@ class TaxFixWorkflow:
     # -------------------------
     # Conversation helpers
     # -------------------------
-    async def _ensure_conversation_exists(self, user_id: str, session_id: str) -> str:
+    async def ensure_conversation_exists(self, user_id: str, session_id: str) -> str:
         """Ensure conversation exists in database and return conversation ID."""
         try:
             existing = await self.database_service.get_user_conversations(user_id, limit=100)
@@ -85,7 +85,7 @@ class TaxFixWorkflow:
             logger.error(f"Error ensuring conversation exists: {e}")
             return session_id
 
-    async def _store_message_in_db(self, conversation_id: str, message: Message) -> None:
+    async def store_message_in_db(self, conversation_id: str, message: Message) -> None:
         """Store message in DB and cache in Redis."""
         try:
             await self.database_service.add_message(message)
@@ -95,7 +95,7 @@ class TaxFixWorkflow:
         except Exception as e:
             logger.error(f"Error storing message: {e}")
 
-    async def _get_conversation_history(self, conversation_id: str, limit: int = 10) -> List[Dict[str, str]]:
+    async def get_conversation_history(self, conversation_id: str, limit: int = 10) -> List[Dict[str, str]]:
         """Get recent history (prefers Redis cache)."""
         try:
             cached = await self.memory_service.get_cached_conversation_history(conversation_id, limit)
@@ -127,7 +127,7 @@ class TaxFixWorkflow:
 
         try:
             # Ensure conversation and persist user message
-            conversation_id = await self._ensure_conversation_exists(user_id, session_id)
+            conversation_id = await self.ensure_conversation_exists(user_id, session_id)
             user_msg = Message(
                 id=f"msg_{int(time.time() * 1000)}",
                 conversation_id=conversation_id,
@@ -135,11 +135,11 @@ class TaxFixWorkflow:
                 content=user_message,
                 message_type=MessageType.TEXT,
             )
-            await self._store_message_in_db(conversation_id, user_msg)
+            await self.store_message_in_db(conversation_id, user_msg)
 
             # Context & history
             conversation_context = await self.memory_service.get_conversation_context(session_id) or {}
-            conversation_history = await self._get_conversation_history(conversation_id)
+            conversation_history = await self.get_conversation_history(conversation_id)
 
             context: Dict[str, Any] = {
                 "user_id": user_id,
@@ -215,7 +215,7 @@ class TaxFixWorkflow:
                     logger.info(f"   📄 Available tax docs: {len(context['user_tax_documents'])} items")
                 
                 t0 = time.perf_counter()
-                resp = await self._run_single_agent(
+                resp = await self.run_single_agent(
                     agent_name=agent_name,
                     user_message=user_message,
                     context=context,
@@ -243,7 +243,7 @@ class TaxFixWorkflow:
 
             # -------- Merge responses --------
             logger.info(f"🔗 MERGING RESPONSES: Combining {len(per_agent_results)} agent outputs")
-            combined = await self._combine_agent_responses(per_agent_results, picks, user_message, context)
+            combined = await self.combine_agent_responses(per_agent_results, picks, user_message, context)
             logger.info(f"✨ FINAL RESPONSE: {len(combined.content)} chars, confidence {combined.confidence:.2f}")
 
             # Persist assistant message (single merged message)
@@ -254,11 +254,11 @@ class TaxFixWorkflow:
                 content=combined.content,
                 message_type=MessageType.TEXT,
             )
-            await self._store_message_in_db(conversation_id, assistant_msg)
+            await self.store_message_in_db(conversation_id, assistant_msg)
 
             # Update context + learning hooks
-            await self._update_conversation_context(session_id, context, combined)
-            await self._process_learning_and_updates(user_id, conversation_id, context, combined)
+            await self.update_conversation_context(session_id, context, combined)
+            await self.process_learning_and_updates(user_id, conversation_id, context, combined)
 
             # Execution metrics (simple)
             exec_metrics = {
@@ -291,7 +291,7 @@ class TaxFixWorkflow:
     # -------------------------
     # Agent execution & merge
     # -------------------------
-    async def _run_single_agent(
+    async def run_single_agent(
         self,
         agent_name: str,
         user_message: str,
@@ -317,7 +317,7 @@ class TaxFixWorkflow:
         # Fallback to orchestrator
         return await self.orchestrator.process(msg, context, session_id, user_profile)
 
-    async def _combine_agent_responses(
+    async def combine_agent_responses(
         self,
         per_agent_results: List[Tuple[str, AgentResponse, float]],
         picks: List[AgentPick],
@@ -456,7 +456,7 @@ class TaxFixWorkflow:
     # -------------------------
     # Context + learning hooks
     # -------------------------
-    async def _update_conversation_context(
+    async def update_conversation_context(
         self,
         session_id: str,
         context: Dict[str, Any],
@@ -476,7 +476,7 @@ class TaxFixWorkflow:
                 "conversation_stage": context.get("conversation_stage", "initial"),
                 "message_count": context.get("message_count", 1),
                 "last_agent": last_agent,
-                "last_topic": self._extract_topic_from_response(response.content),
+                "last_topic": self.extract_topic_from_response(response.content),
                 "user_intent": response.metadata.get("user_intent"),
                 "requires_followup": response.metadata.get("requires_followup", False),
                 "missing_fields": response.metadata.get("missing_fields", []),
@@ -487,7 +487,7 @@ class TaxFixWorkflow:
         except Exception as e:
             logger.error(f"Error updating conversation context: {e}")
 
-    async def _process_learning_and_updates(
+    async def process_learning_and_updates(
         self,
         user_id: str,
         conversation_id: str,
@@ -499,7 +499,7 @@ class TaxFixWorkflow:
             msg_count = context.get("message_count", 1)
 
             # Update interaction count on user profile
-            await self._update_user_interaction_count(user_id)
+            await self.update_user_interaction_count(user_id)
 
             # Trigger learning periodically or on profile update
             if (
@@ -516,12 +516,12 @@ class TaxFixWorkflow:
 
             # Update auto-title near conversation start
             if msg_count <= 2:
-                await self._update_conversation_title(conversation_id)
+                await self.update_conversation_title(conversation_id)
 
         except Exception as e:
             logger.error(f"Error in learning/updates: {e}")
 
-    async def _update_user_interaction_count(self, user_id: str) -> None:
+    async def update_user_interaction_count(self, user_id: str) -> None:
         try:
             profile = await self.database_service.get_user_profile(user_id)
             if profile:
@@ -532,7 +532,7 @@ class TaxFixWorkflow:
         except Exception as e:
             logger.error(f"Error updating user interaction count: {e}")
 
-    async def _update_conversation_title(self, conversation_id: str) -> None:
+    async def update_conversation_title(self, conversation_id: str) -> None:
         try:
             title = await self.conversation_tools.analyze_conversation_for_title(conversation_id)
             if title and title != "New Conversation":
@@ -541,7 +541,7 @@ class TaxFixWorkflow:
         except Exception as e:
             logger.error(f"Error updating conversation title: {e}")
 
-    def _extract_topic_from_response(self, response_content: str) -> str:
+    def extract_topic_from_response(self, response_content: str) -> str:
         """Simple topic classifier (kept for speed/robustness)."""
         try:
             content_lower = (response_content or "").lower()

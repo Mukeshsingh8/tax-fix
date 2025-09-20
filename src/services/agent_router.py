@@ -135,10 +135,10 @@ class AgentRouter:
         Returns a prioritized list of agents to run with confidence + reasons.
         """
         # 1) Deterministic rules (strong signals)
-        picks = self._rule_based_picks(user_message, conversation_history)
+        picks = self.rule_based_picks(user_message, conversation_history)
 
         # 2) LLM-scored structured picks
-        llm_picks = await self._llm_scored_picks(user_message, user_profile, context, conversation_history)
+        llm_picks = await self.llm_scored_picks(user_message, user_profile, context, conversation_history)
 
         # 3) Merge + dedupe (keep max confidence per agent, merge reasons/triggers)
         merged: Dict[str, AgentPick] = {}
@@ -185,7 +185,7 @@ class AgentRouter:
     # ------------------------------
     # Rule engine
     # ------------------------------
-    def _rule_based_picks(
+    def rule_based_picks(
         self,
         user_message: str,
         conversation_history: Optional[List[Dict[str, str]]] = None,
@@ -230,7 +230,7 @@ class AgentRouter:
     # ------------------------------
     # LLM scoring (now uses generate_response + robust JSON parsing)
     # ------------------------------
-    async def _llm_scored_picks(
+    async def llm_scored_picks(
         self,
         user_message: str,
         user_profile: Optional[Dict[str, Any]],
@@ -279,7 +279,7 @@ Current user message:
                 model="groq",
                 system_prompt="Return strictly valid JSON only. No markdown. No prose.",
             )
-            data = self._extract_first_json_object(raw)
+            data = self.extract_first_json_object(raw)
             if not isinstance(data, dict) or "agents" not in data or not isinstance(data["agents"], list):
                 raise ValueError("LLM did not return the expected JSON object")
 
@@ -311,7 +311,7 @@ Current user message:
     # ------------------------------
     # JSON extraction helper
     # ------------------------------
-    def _extract_first_json_object(self, text: str) -> Any:
+    def extract_first_json_object(self, text: str) -> Any:
         """
         Extract the first top-level JSON object from a string and parse it.
         Handles extra prose by scanning braces while respecting strings/escapes.

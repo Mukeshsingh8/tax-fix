@@ -55,10 +55,10 @@ class LLMService(BaseService, LLMMixin):
         super().__init__("LLMService")
         self.groq_client: Optional[ChatGroq] = None
         self.gemini_client: Optional[ChatGoogleGenerativeAI] = None
-        self._initialize_clients()
+        self.initialize_clients()
 
     # ---------- client bootstrap ----------
-    def _initialize_clients(self) -> None:
+    def initialize_clients(self) -> None:
         self.log_operation_start("initialize_clients")
         try:
             # Validate required settings first
@@ -96,7 +96,7 @@ class LLMService(BaseService, LLMMixin):
 
     # ---------- utilities ----------
     @staticmethod
-    def _to_lc_messages(
+    def to_lc_messages(
         messages: List[Dict[str, str]],
         system_prompt: Optional[str] = None
     ) -> List[BaseMessage]:
@@ -117,7 +117,7 @@ class LLMService(BaseService, LLMMixin):
                 lc_msgs.append(HumanMessage(content=content))
         return lc_msgs
 
-    def _pick_client(self, provider: str):
+    def pick_client(self, provider: str):
         """provider in {'groq','gemini'}"""
         if provider == "groq":
             return self.groq_client
@@ -126,7 +126,7 @@ class LLMService(BaseService, LLMMixin):
         raise ValueError(f"Unknown provider: {provider}")
 
     @staticmethod
-    def _strip_code_fences(text: str) -> str:
+    def strip_code_fences(text: str) -> str:
         """Remove ```json/``` fences if present and trim."""
         text = text.strip()
         text = re.sub(r"^\s*```json\s*|\s*```\s*$", "", text, flags=re.I | re.M)
@@ -134,19 +134,19 @@ class LLMService(BaseService, LLMMixin):
         return text.strip()
 
     @staticmethod
-    def _extract_first_json(text: str) -> str:
+    def extract_first_json(text: str) -> str:
         """Extract the first JSON object from text; raises if not found."""
         match = re.search(r"\{.*\}", text, re.S)
         if not match:
             raise ValueError("No JSON object found in LLM output.")
         return match.group(0)
 
-    async def _with_timeout(self, coro, timeout_s: Optional[float]):
+    async def with_timeout(self, coro, timeout_s: Optional[float]):
         if timeout_s is None or timeout_s <= 0:
             return await coro
         return await asyncio.wait_for(coro, timeout=timeout_s)
 
-    async def _try_providers_in_order(
+    async def try_providers_in_order(
         self,
         fn: Callable[[Any], Any],
         providers: Iterable[str]
@@ -185,10 +185,10 @@ class LLMService(BaseService, LLMMixin):
         NOTE: `model` parameter is treated as a provider selector {"groq","gemini"}.
         """
         provider = "groq" if model == "groq" else "gemini"
-        lc_msgs = self._to_lc_messages(messages, system_prompt)
+        lc_msgs = self.to_lc_messages(messages, system_prompt)
 
         async def run_once(pvdr: str) -> str:
-            client = self._pick_client(pvdr)
+            client = self.pick_client(pvdr)
             if not client:
                 raise ValueError(f"Client not available for provider: {pvdr}")
 
@@ -203,11 +203,11 @@ class LLMService(BaseService, LLMMixin):
                 else:
                     invoke_kwargs["max_output_tokens"] = max_tokens
 
-            resp = await self._with_timeout(client.ainvoke(lc_msgs, **invoke_kwargs), timeout_s)
+            resp = await self.with_timeout(client.ainvoke(lc_msgs, **invoke_kwargs), timeout_s)
             return resp.content
 
         async def run_stream(pvdr: str) -> AsyncGenerator[str, None]:
-            client = self._pick_client(pvdr)
+            client = self.pick_client(pvdr)
             if not client:
                 raise ValueError(f"Client not available for provider: {pvdr}")
 
@@ -234,7 +234,7 @@ class LLMService(BaseService, LLMMixin):
 
             # Return the first available provider's stream
             for pvdr in try_order:
-                client_ok = self._pick_client(pvdr) is not None
+                client_ok = self.pick_client(pvdr) is not None
                 if client_ok:
                     return await run_stream(pvdr)
             # If none available:
@@ -262,7 +262,7 @@ class LLMService(BaseService, LLMMixin):
         if fallback and (provider == "gemini") and self.groq_client:
             try_order.append("groq")
 
-        return await self._try_providers_in_order(run_with_retries, try_order)
+        return await self.try_providers_in_order(run_with_retries, try_order)
 
     # Convenience: strict JSON completion with parsing and guardrails
     async def generate_json(
@@ -290,14 +290,14 @@ class LLMService(BaseService, LLMMixin):
             retries=retries,
             fallback=fallback,
         )
-        cleaned = self._strip_code_fences(text)
+        cleaned = self.strip_code_fences(text)
         try:
             # Try direct parse first (fast path)
             return json.loads(cleaned)
         except json.JSONDecodeError:
             # Extract the first JSON object if extra text leaked
             try:
-                obj = self._extract_first_json(cleaned)
+                obj = self.extract_first_json(cleaned)
                 return json.loads(obj)
             except Exception as e:
                 self.logger.error(f"Failed to parse JSON from model output. Raw:\n{text}")
@@ -306,7 +306,7 @@ class LLMService(BaseService, LLMMixin):
     # -----------------------------------------------------------------
     # Streaming (explicit helper kept for compatibility with callers)
     # -----------------------------------------------------------------
-    async def _stream_response(
+    async def stream_response(
         self,
         client,                   # kept for backwards compat
         messages: List[BaseMessage],
@@ -335,13 +335,13 @@ class LLMService(BaseService, LLMMixin):
         Returns (content, tokens_seen).
         """
         provider = "groq" if model == "groq" else "gemini"
-        lc_msgs = self._to_lc_messages(messages, system_prompt)
-        client = self._pick_client(provider)
+        lc_msgs = self.to_lc_messages(messages, system_prompt)
+        client = self.pick_client(provider)
         if not client:
             raise ValueError(f"Client not available for provider: {provider}")
 
         callback_handler = StreamingCallbackHandler()
-        resp = await self._with_timeout(
+        resp = await self.with_timeout(
             client.ainvoke(lc_msgs, callbacks=[callback_handler]),
             timeout_s,
         )

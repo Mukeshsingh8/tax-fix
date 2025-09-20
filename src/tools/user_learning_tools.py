@@ -21,7 +21,7 @@ _settings = get_settings()
 # Helpers
 # -------------------------
 
-def _safe_text(s: Any, max_len: int = 2000) -> str:
+def safe_text(s: Any, max_len: int = 2000) -> str:
     """Basic text sanitizer with length guard."""
     if not s:
         return ""
@@ -30,11 +30,11 @@ def _safe_text(s: Any, max_len: int = 2000) -> str:
     return txt[:max_len]
 
 
-def _now_iso() -> str:
+def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _load_existing_value(blob: Any) -> str:
+def load_existing_value(blob: Any) -> str:
     """
     Database may store learning in different shapes:
     try common keys and fallback.
@@ -55,7 +55,7 @@ def _load_existing_value(blob: Any) -> str:
         return ""
 
 
-def _compact_json(d: Dict[str, Any]) -> str:
+def compact_json(d: Dict[str, Any]) -> str:
     try:
         return json.dumps(d, ensure_ascii=False, separators=(",", ":"))
     except Exception:
@@ -63,14 +63,14 @@ def _compact_json(d: Dict[str, Any]) -> str:
         return json.dumps(d, ensure_ascii=False)
 
 
-def _parse_json_maybe(s: str) -> Optional[Dict[str, Any]]:
+def parse_json_maybe(s: str) -> Optional[Dict[str, Any]]:
     try:
         return json.loads(s)
     except Exception:
         return None
 
 
-def _pair_turns(messages: List[Any], max_turns: int = 6) -> List[Tuple[str, str]]:
+def pair_turns(messages: List[Any], max_turns: int = 6) -> List[Tuple[str, str]]:
     """
     Build user→assistant turns in chronological order.
     Each turn is (user_text, assistant_text_or_empty).
@@ -80,7 +80,7 @@ def _pair_turns(messages: List[Any], max_turns: int = 6) -> List[Tuple[str, str]
 
     for m in messages:
         role = role_to_str(getattr(m, "role", ""))
-        content = _safe_text(getattr(m, "content", ""), max_len=1200)
+        content = safe_text(getattr(m, "content", ""), max_len=1200)
         if not content:
             continue
 
@@ -103,7 +103,7 @@ def _pair_turns(messages: List[Any], max_turns: int = 6) -> List[Tuple[str, str]
     return turns[-max_turns:]  # keep last N turns
 
 
-def _format_turns_for_prompt(turns: List[Tuple[str, str]]) -> str:
+def format_turns_for_prompt(turns: List[Tuple[str, str]]) -> str:
     lines: List[str] = []
     for i, (u, a) in enumerate(turns, 1):
         if u:
@@ -113,7 +113,7 @@ def _format_turns_for_prompt(turns: List[Tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def _fallback_from_text(all_text: str) -> Dict[str, Any]:
+def fallback_from_text(all_text: str) -> Dict[str, Any]:
     """
     Super-simple heuristics to produce a structured summary when LLM is unavailable.
     """
@@ -156,11 +156,11 @@ def _fallback_from_text(all_text: str) -> Dict[str, Any]:
         "goals": [],
         "learning_style": "Prefers examples" if "example" in txt else "Not specified",
         "evidence": ["Heuristic fallback (limited confidence)"],
-        "updated_at": _now_iso(),
+        "updated_at": now_iso(),
     }
 
 
-def _merge_lists(a: List[str], b: List[str], max_len: int = 8) -> List[str]:
+def merge_lists(a: List[str], b: List[str], max_len: int = 8) -> List[str]:
     seen = set()
     out: List[str] = []
     for item in (a or []) + (b or []):
@@ -174,7 +174,7 @@ def _merge_lists(a: List[str], b: List[str], max_len: int = 8) -> List[str]:
     return out
 
 
-def _merge_learning(old: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+def merge_learning(old: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
     """Merge two structured learning dicts."""
     merged: Dict[str, Any] = {}
     # string-ish fields
@@ -183,9 +183,9 @@ def _merge_learning(old: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
 
     # list-ish fields
     for k in ("preferences", "frustrations", "interests", "personality_traits", "goals", "evidence"):
-        merged[k] = _merge_lists(old.get(k, []), new.get(k, []), max_len=10)
+        merged[k] = merge_lists(old.get(k, []), new.get(k, []), max_len=10)
 
-    merged["updated_at"] = _now_iso()
+    merged["updated_at"] = now_iso()
     return merged
 
 
@@ -215,15 +215,15 @@ class UserLearningTools:
             if not messages:
                 return "No conversation data available for analysis."
 
-            turns = _pair_turns(messages, max_turns=6)
+            turns = pair_turns(messages, max_turns=6)
             if not turns:
                 return "No user messages found for analysis."
 
-            convo_for_prompt = _format_turns_for_prompt(turns)
+            convo_for_prompt = format_turns_for_prompt(turns)
 
             existing_learning_raw = await self.database.get_user_learning(user_id)
-            existing_summary_str = _load_existing_value(existing_learning_raw)
-            existing_struct = _parse_json_maybe(existing_summary_str) or {}
+            existing_summary_str = load_existing_value(existing_learning_raw)
+            existing_struct = parse_json_maybe(existing_summary_str) or {}
 
             # Build prompt with clear JSON-only instruction
             system = (
@@ -257,15 +257,15 @@ class UserLearningTools:
             )
 
             # Parse & merge
-            parsed = _parse_json_maybe(llm_resp.strip())
+            parsed = parse_json_maybe(llm_resp.strip())
             if not isinstance(parsed, dict):
                 raise ValueError("Model did not return valid JSON")
 
             if "updated_at" not in parsed:
-                parsed["updated_at"] = _now_iso()
+                parsed["updated_at"] = now_iso()
 
-            merged = _merge_learning(existing_struct if isinstance(existing_struct, dict) else {}, parsed)
-            return _compact_json(merged)
+            merged = merge_learning(existing_struct if isinstance(existing_struct, dict) else {}, parsed)
+            return compact_json(merged)
 
         except Exception as e:
             logger.error(f"Error analyzing conversation for learning: {e}")
@@ -274,12 +274,12 @@ class UserLearningTools:
             try:
                 # Build a quick all-text window
                 all_text = " ".join(
-                    _safe_text(getattr(m, "content", ""), max_len=500)
+                    safe_text(getattr(m, "content", ""), max_len=500)
                     for m in (messages or [])
                     if getattr(m, "content", None)
                 )[:5000]
-                fallback = _fallback_from_text(all_text)
-                return _compact_json(fallback)
+                fallback = fallback_from_text(all_text)
+                return compact_json(fallback)
             except Exception as inner:
                 logger.error(f"Fallback learning also failed: {inner}")
                 return f"Error analyzing conversation: {e}"
@@ -316,11 +316,11 @@ class UserLearningTools:
             if not learning_data:
                 return {"user_id": user_id, "summary": "No learning data available", "last_updated": None}
 
-            raw = _load_existing_value(learning_data)
-            parsed = _parse_json_maybe(raw)
+            raw = load_existing_value(learning_data)
+            parsed = parse_json_maybe(raw)
             # Prefer JSON if available
             if isinstance(parsed, dict):
-                return {"user_id": user_id, "summary": _compact_json(parsed), "last_updated": parsed.get("updated_at")}
+                return {"user_id": user_id, "summary": compact_json(parsed), "last_updated": parsed.get("updated_at")}
             # else: return whatever string we found, try a DB timestamp
             return {
                 "user_id": user_id,

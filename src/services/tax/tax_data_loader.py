@@ -40,7 +40,7 @@ class TaxDataLoader(BaseService):
             source_deductions = get_german_deductions() or []
 
             # Process and normalize deductions
-            self.deductions = self._normalize_deductions(source_deductions)
+            self.deductions = self.normalize_deductions(source_deductions)
             
             self._data_loaded = True
             self.log_operation_success(
@@ -54,7 +54,7 @@ class TaxDataLoader(BaseService):
             self.deductions = []
             self._data_loaded = False
     
-    def _normalize_deductions(self, source_deductions: List[Deduction]) -> List[Deduction]:
+    def normalize_deductions(self, source_deductions: List[Deduction]) -> List[Deduction]:
         """
         Normalize and validate deduction data.
         

@@ -32,10 +32,10 @@ class AuthService(BaseService):
 
     # ---- Passwords ----------------------------------------------------------
 
-    def _hash_password(self, password: str) -> str:
+    def hash_password(self, password: str) -> str:
         return self.pwd_context.hash(password)
 
-    def _verify_password(self, password: str, hashed_password: str) -> bool:
+    def verify_password(self, password: str, hashed_password: str) -> bool:
         """Verify bcrypt (primary) and SHA-256 (legacy fallback)."""
         try:
             return self.pwd_context.verify(password, hashed_password)
@@ -47,7 +47,7 @@ class AuthService(BaseService):
 
     # ---- JWT ----------------------------------------------------------------
 
-    def _generate_token(self, user_id: str, email: str) -> str:
+    def generate_token(self, user_id: str, email: str) -> str:
         payload = {
             "user_id": user_id,
             "email": email,
@@ -58,7 +58,7 @@ class AuthService(BaseService):
         # PyJWT v2 returns str; older could return bytes
         return token.decode("utf-8") if isinstance(token, (bytes, bytearray)) else token
 
-    def _decode_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def decode_token(self, token: str) -> Optional[Dict[str, Any]]:
         try:
             return jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
         except jwt.ExpiredSignatureError:
@@ -73,7 +73,7 @@ class AuthService(BaseService):
 
     # ---- Redis session helpers ---------------------------------------------
 
-    async def _store_user_session(self, session: UserSession) -> None:
+    async def store_user_session(self, session: UserSession) -> None:
         try:
             data = {
                 "user_id": session.user_id,
@@ -94,7 +94,7 @@ class AuthService(BaseService):
         except Exception as e:
             self.logger.error(f"Error storing user session: {e}")
 
-    async def _get_user_session(self, user_id: str) -> Optional[UserSession]:
+    async def get_user_session(self, user_id: str) -> Optional[UserSession]:
         try:
             raw = await self.memory_service.get_temp_data(f"user_session:{user_id}")
             if not raw:
@@ -113,7 +113,7 @@ class AuthService(BaseService):
             self.logger.error(f"Error getting user session: {e}")
             return None
 
-    async def _invalidate_user_session(self, user_id: str) -> None:
+    async def invalidate_user_session(self, user_id: str) -> None:
         try:
             await self.memory_service.delete_user_session(user_id)
             # Also drop temp copy if used
@@ -138,7 +138,7 @@ class AuthService(BaseService):
                 id=secrets.token_urlsafe(16),
                 email=request.email,
                 name=request.name,
-                password_hash=self._hash_password(request.password),
+                password_hash=self.hash_password(request.password),
             )
             created = await self.database.create_user(user)
 
@@ -149,10 +149,10 @@ class AuthService(BaseService):
                 name=created.name,
                 role=UserRole.USER,
             )
-            token = self._generate_token(created.id, created.email)
+            token = self.generate_token(created.id, created.email)
 
             # Cache session for fast lookup
-            await self._store_user_session(session)
+            await self.store_user_session(session)
 
             self.logger.info(f"User registered: {created.email}")
             return AuthResponse(success=True, message="User registered successfully", user=session, token=token)
@@ -164,7 +164,7 @@ class AuthService(BaseService):
         """Verify credentials, issue fresh token, cache session."""
         try:
             user = await self.database.get_user_by_email(request.email)
-            if not user or not self._verify_password(request.password, user.password_hash):
+            if not user or not self.verify_password(request.password, user.password_hash):
                 return AuthResponse(success=False, message="Invalid email or password")
 
             session = UserSession(
@@ -174,9 +174,9 @@ class AuthService(BaseService):
                 name=user.name,
                 role=UserRole.USER,
             )
-            token = self._generate_token(user.id, user.email)
+            token = self.generate_token(user.id, user.email)
 
-            await self._store_user_session(session)
+            await self.store_user_session(session)
 
             self.logger.info(f"User logged in: {user.email}")
             return AuthResponse(success=True, message="Login successful", user=session, token=token)
@@ -187,7 +187,7 @@ class AuthService(BaseService):
     async def verify_token(self, token: str) -> Optional[UserSession]:
         """Validate JWT and synthesize a transient session (no cache write)."""
         try:
-            payload = self._decode_token(token)
+            payload = self.decode_token(token)
             if not payload:
                 return None
 
@@ -209,9 +209,9 @@ class AuthService(BaseService):
     async def logout_user(self, token: str) -> AuthResponse:
         """Invalidate cached session for the token's user (JWT remains stateless)."""
         try:
-            payload = self._decode_token(token)
+            payload = self.decode_token(token)
             if payload and payload.get("user_id"):
-                await self._invalidate_user_session(payload["user_id"])
+                await self.invalidate_user_session(payload["user_id"])
             else:
                 self.logger.warning("Logout called with invalid/expired token")
             return AuthResponse(success=True, message="Logout successful")
@@ -222,7 +222,7 @@ class AuthService(BaseService):
     async def get_current_user(self, token: str) -> Optional[UserSession]:
         """Return an active session if in cache, otherwise rehydrate from DB and cache."""
         try:
-            payload = self._decode_token(token)
+            payload = self.decode_token(token)
             if not payload:
                 return None
 
@@ -231,7 +231,7 @@ class AuthService(BaseService):
                 return None
 
             # Fast path: cached
-            cached = await self._get_user_session(user_id)
+            cached = await self.get_user_session(user_id)
             if cached and cached.is_active:
                 return cached
 
@@ -247,7 +247,7 @@ class AuthService(BaseService):
                 name=user.name,
                 role=UserRole.USER,
             )
-            await self._store_user_session(session)
+            await self.store_user_session(session)
             return session
         except Exception as e:
             self.logger.error(f"Error getting current user: {e}")

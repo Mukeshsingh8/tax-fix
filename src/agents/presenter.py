@@ -96,7 +96,7 @@ class PresenterAgent(BaseAgent):
             recent_history = conversation_history[-5:] if conversation_history else []
 
             # Build the synthesis prompt
-            prompt = self._build_synthesis_prompt(
+            prompt = self.build_synthesis_prompt(
                 user_message=user_message,
                 agent_outputs=agent_outputs,
                 conversation_history=recent_history,
@@ -125,7 +125,7 @@ class PresenterAgent(BaseAgent):
             ])
             return fallback_content
 
-    def _build_synthesis_prompt(
+    def build_synthesis_prompt(
         self,
         user_message: str,
         agent_outputs: List[Dict[str, Any]],

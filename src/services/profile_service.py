@@ -54,32 +54,32 @@ class ProfileService(BaseService, ValidationMixin):
             text_lower = text.lower()
             
             # Extract income information
-            income_info = self._extract_income_info(text_lower, text)
+            income_info = self.extract_income_info(text_lower, text)
             if income_info:
                 extracted.update(income_info)
             
             # Extract employment status
-            employment = self._extract_employment_status(text_lower)
+            employment = self.extract_employment_status(text_lower)
             if employment:
                 extracted["employment_status"] = employment
             
             # Extract filing status
-            filing = self._extract_filing_status(text_lower)
+            filing = self.extract_filing_status(text_lower)
             if filing:
                 extracted["filing_status"] = filing
             
             # Extract dependents
-            dependents = self._extract_dependents(text_lower, text)
+            dependents = self.extract_dependents(text_lower, text)
             if dependents is not None:
                 extracted["dependents"] = dependents
             
             # Extract tax goals
-            goals = self._extract_tax_goals(text_lower)
+            goals = self.extract_tax_goals(text_lower)
             if goals:
                 extracted["tax_goals"] = goals
             
             # Extract risk tolerance
-            risk = self._extract_risk_tolerance(text_lower)
+            risk = self.extract_risk_tolerance(text_lower)
             if risk:
                 extracted["risk_tolerance"] = risk
             
@@ -90,7 +90,7 @@ class ProfileService(BaseService, ValidationMixin):
             self.log_operation_error("extract_profile_info", e)
             return {}
     
-    def _extract_income_info(self, text_lower: str, original_text: str) -> Dict[str, Any]:
+    def extract_income_info(self, text_lower: str, original_text: str) -> Dict[str, Any]:
         """Extract income-related information."""
         info = {}
         
@@ -112,7 +112,7 @@ class ProfileService(BaseService, ValidationMixin):
         
         return info
     
-    def _extract_employment_status(self, text_lower: str) -> Optional[str]:
+    def extract_employment_status(self, text_lower: str) -> Optional[str]:
         """Extract employment status from text."""
         status_patterns = {
             "employed": ["employed", "work for", "employee", "job at"],
@@ -128,7 +128,7 @@ class ProfileService(BaseService, ValidationMixin):
         
         return None
     
-    def _extract_filing_status(self, text_lower: str) -> Optional[str]:
+    def extract_filing_status(self, text_lower: str) -> Optional[str]:
         """Extract filing status from text."""
         if any(word in text_lower for word in ["married", "spouse", "husband", "wife"]):
             if "separate" in text_lower:
@@ -140,7 +140,7 @@ class ProfileService(BaseService, ValidationMixin):
         
         return None
     
-    def _extract_dependents(self, text_lower: str, original_text: str) -> Optional[int]:
+    def extract_dependents(self, text_lower: str, original_text: str) -> Optional[int]:
         """Extract number of dependents."""
         dependents_patterns = [
             r"(\d+)\s*(?:child|children|kid|kids|dependent|dependents)",
@@ -162,7 +162,7 @@ class ProfileService(BaseService, ValidationMixin):
         
         return None
     
-    def _extract_tax_goals(self, text_lower: str) -> List[str]:
+    def extract_tax_goals(self, text_lower: str) -> List[str]:
         """Extract tax goals from text."""
         goals = []
         goal_patterns = {
@@ -178,7 +178,7 @@ class ProfileService(BaseService, ValidationMixin):
         
         return normalize_tax_goals(goals)
     
-    def _extract_risk_tolerance(self, text_lower: str) -> Optional[str]:
+    def extract_risk_tolerance(self, text_lower: str) -> Optional[str]:
         """Extract risk tolerance from text."""
         if any(word in text_lower for word in ["conservative", "safe", "low risk", "cautious"]):
             return normalize_risk_tolerance("conservative")

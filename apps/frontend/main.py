@@ -55,19 +55,19 @@ class TaxFixApp:
             return
         
         # Check if user has a profile
-        if not self._has_user_profile():
-            if not self._try_load_profile():
+        if not self.has_user_profile():
+            if not self.try_load_profile():
                 render_profile_creation_page(self.api_client, self.auth_manager)
                 return
         
         # Render main application
-        self._render_main_app()
+        self.render_main_app()
     
-    def _has_user_profile(self) -> bool:
+    def has_user_profile(self) -> bool:
         """Check if user has a profile in session state."""
         return st.session_state.get('user_profile') is not None
     
-    def _try_load_profile(self) -> bool:
+    def try_load_profile(self) -> bool:
         """Try to load user profile from backend."""
         try:
             response = self.api_client.get_user_profile(self.auth_manager.get_token())
@@ -78,7 +78,7 @@ class TaxFixApp:
         except Exception:
             return False
     
-    def _render_main_app(self):
+    def render_main_app(self):
         """Render the main authenticated application."""
         # Render navigation and get selected tab
         selected_tab = render_navigation()

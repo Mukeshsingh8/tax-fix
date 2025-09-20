@@ -41,9 +41,9 @@ class AuthManager:
         # Try to restore session from URL parameters (for refresh handling)
         if 'auth_restore_attempted' not in st.session_state:
             st.session_state.auth_restore_attempted = True
-            self._check_url_auth_restore()
+            self.check_url_auth_restore()
     
-    def _check_url_auth_restore(self):
+    def check_url_auth_restore(self):
         """Check URL parameters for auth restoration after refresh."""
         try:
             # Simple approach: check URL for auth restoration
@@ -65,7 +65,7 @@ class AuthManager:
                         st.session_state.token = token
                         
                         # Store in browser storage for future refreshes
-                        self._store_session_in_storage()
+                        self.store_session_in_storage()
                         
                         # Clean URL
                         st.query_params.clear()
@@ -74,7 +74,7 @@ class AuthManager:
             # If restoration fails, continue normally
             pass
     
-    def _store_session_in_storage(self):
+    def store_session_in_storage(self):
         """Store authentication session in browser storage."""
         if st.session_state.authenticated and st.session_state.user and st.session_state.token:
             # Escape user data for JavaScript
@@ -90,7 +90,7 @@ class AuthManager:
             """
             components.html(storage_script, height=0)
     
-    def _clear_session_storage(self):
+    def clear_session_storage(self):
         """Clear authentication session from browser storage."""
         clear_script = f"""
         <script>
@@ -114,7 +114,7 @@ class AuthManager:
             st.session_state.token = response.get("token")
             
             # Store authentication in browser storage for persistence
-            self._store_session_in_storage()
+            self.store_session_in_storage()
             
             # Set URL parameters for refresh persistence (defensive access)
             user_id = None
@@ -147,7 +147,7 @@ class AuthManager:
             self.api_client.logout(st.session_state.token)
         
         # Clear session storage
-        self._clear_session_storage()
+        self.clear_session_storage()
         
         # Clear URL parameters
         st.query_params.clear()

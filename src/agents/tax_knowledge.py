@@ -57,16 +57,16 @@ class TaxKnowledgeAgent(BaseAgent):
         )
 
         # Check if we're missing critical info
-        missing_info = await self._detect_missing_information(message, db_profile, context)
+        missing_info = await self.detect_missing_information(message, db_profile, context)
         if missing_info:
-            return await self._ask_clarifying_questions(missing_info, message, context)
+            return await self.ask_clarifying_questions(missing_info, message, context)
 
         # Retrieve relevant knowledge
         relevant_rules = self.tax_service.search_tax_rules(message.content) or []
         relevant_deductions = self.tax_service.search_deductions(message.content) or []
 
         # Generate guidance
-        guidance = await self._generate_tax_guidance(
+        guidance = await self.generate_tax_guidance(
             message=message,
             relevant_rules=relevant_rules,
             relevant_deductions=relevant_deductions,
@@ -87,7 +87,7 @@ class TaxKnowledgeAgent(BaseAgent):
         )
 
         # Create response
-        response_content = await self._create_guidance_response(
+        response_content = await self.create_guidance_response(
             guidance=guidance,
             deductions=top_deductions,
             calculations=calculations,
@@ -105,13 +105,13 @@ class TaxKnowledgeAgent(BaseAgent):
             ],
             metadata={
                 "agent_type": "tax_knowledge",
-                "tax_topics": self._extract_tax_topics(message.content),
+                "tax_topics": self.extract_tax_topics(message.content),
                 "relevant_deductions": top_deductions,
                 "calculations": calculations,
             },
         )
 
-    async def _detect_missing_information(
+    async def detect_missing_information(
         self,
         message: Message,
         user_profile: Optional[DBUserProfile],
@@ -139,7 +139,7 @@ class TaxKnowledgeAgent(BaseAgent):
             self.logger.error(f"Missing information detection error: {e}")
             return []
 
-    async def _ask_clarifying_questions(
+    async def ask_clarifying_questions(
         self,
         missing_info: List[Dict[str, Any]],
         message: Message,
@@ -179,7 +179,7 @@ class TaxKnowledgeAgent(BaseAgent):
             reasoning="General information request"
         )
 
-    async def _generate_tax_guidance(
+    async def generate_tax_guidance(
         self,
         message: Message,
         relevant_rules: List[Any],
@@ -222,7 +222,7 @@ Always respond in English. Use German tax terms with brief explanations."""
             self.logger.error(f"Tax guidance generation error: {e}")
             return "I can help with German tax questions. Please ask about specific deductions, tax rates, or calculations."
 
-    async def _create_guidance_response(
+    async def create_guidance_response(
         self,
         guidance: str,
         deductions: List[Dict[str, Any]],
@@ -235,13 +235,13 @@ Always respond in English. Use German tax terms with brief explanations."""
 
             # Add calculation results if available
             if calculations:
-                calc_section = self._format_calculation_section(calculations)
+                calc_section = self.format_calculation_section(calculations)
                 if calc_section:
                     response_parts.append(calc_section)
 
             # Add relevant deductions
             if deductions:
-                deduction_section = self._format_deduction_section(deductions[:3])
+                deduction_section = self.format_deduction_section(deductions[:3])
                 if deduction_section:
                     response_parts.append(deduction_section)
 
@@ -251,7 +251,7 @@ Always respond in English. Use German tax terms with brief explanations."""
             self.logger.error(f"Response creation error: {e}")
             return guidance.strip()
 
-    def _format_calculation_section(self, calculations: Dict[str, Any]) -> str:
+    def format_calculation_section(self, calculations: Dict[str, Any]) -> str:
         """Format calculation results."""
         try:
             calc_type = calculations.get("type", "")
@@ -277,7 +277,7 @@ Always respond in English. Use German tax terms with brief explanations."""
         
         return ""
 
-    def _format_deduction_section(self, deductions: List[Dict[str, Any]]) -> str:
+    def format_deduction_section(self, deductions: List[Dict[str, Any]]) -> str:
         """Format deduction recommendations."""
         try:
             if not deductions:
@@ -303,7 +303,7 @@ Always respond in English. Use German tax terms with brief explanations."""
             self.logger.error(f"Deduction formatting error: {e}")
             return ""
 
-    def _extract_tax_topics(self, content: str) -> List[str]:
+    def extract_tax_topics(self, content: str) -> List[str]:
         """Extract tax-related topics from the message."""
         topics = []
         content_lower = content.lower()
@@ -323,6 +323,6 @@ Always respond in English. Use German tax terms with brief explanations."""
         
         return topics
 
-    def _val(self, enum_or_str: Any) -> Optional[str]:
+    def val(self, enum_or_str: Any) -> Optional[str]:
         """Convert enum or string to string value."""
         return val_to_str(enum_or_str)

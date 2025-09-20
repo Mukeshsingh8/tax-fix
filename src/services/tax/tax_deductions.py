@@ -34,7 +34,7 @@ class TaxDeductionAnalyzer:
             # Score deductions based on relevance
             scored_deductions = []
             for deduction in deductions:
-                score = await self._score_deduction_relevance(
+                score = await self.score_deduction_relevance(
                     deduction, message, user_profile
                 )
                 if score > 0.3:  # Relevance threshold
@@ -51,7 +51,7 @@ class TaxDeductionAnalyzer:
             self.logger.error(f"Deduction identification error: {e}")
             return []
 
-    async def _score_deduction_relevance(
+    async def score_deduction_relevance(
         self,
         deduction: Dict[str, Any],
         message: Message,
@@ -73,7 +73,7 @@ class TaxDeductionAnalyzer:
 
             # Score based on profile compatibility
             if user_profile:
-                profile_score = self._score_profile_compatibility(deduction, user_profile)
+                profile_score = self.score_profile_compatibility(deduction, user_profile)
                 score += profile_score * 0.4
 
             # Score based on common usage
@@ -87,7 +87,7 @@ class TaxDeductionAnalyzer:
             self.logger.error(f"Deduction scoring error: {e}")
             return 0.0
 
-    def _score_profile_compatibility(
+    def score_profile_compatibility(
         self,
         deduction: Dict[str, Any],
         user_profile: DBUserProfile
@@ -132,7 +132,7 @@ class TaxDeductionAnalyzer:
             suggestions = []
             
             if not user_profile:
-                return self._get_generic_suggestions()
+                return self.get_generic_suggestions()
 
             employment = getattr(user_profile, 'employment_status', None)
             income = getattr(user_profile, 'annual_income', 0)
@@ -194,9 +194,9 @@ class TaxDeductionAnalyzer:
 
         except Exception as e:
             self.logger.error(f"Personalized suggestions error: {e}")
-            return self._get_generic_suggestions()
+            return self.get_generic_suggestions()
 
-    def _get_generic_suggestions(self) -> List[Dict[str, str]]:
+    def get_generic_suggestions(self) -> List[Dict[str, str]]:
         """Get generic deduction suggestions."""
         return [
             {
@@ -224,7 +224,7 @@ class TaxDeductionAnalyzer:
         """Analyze the user's deduction potential."""
         try:
             current_total = sum(expense.get("amount", 0) for expense in current_expenses)
-            potential_total = self._estimate_potential_deductions(user_profile)
+            potential_total = self.estimate_potential_deductions(user_profile)
             
             return {
                 "current_deductions": current_total,
@@ -238,7 +238,7 @@ class TaxDeductionAnalyzer:
             self.logger.error(f"Deduction analysis error: {e}")
             return {}
 
-    def _estimate_potential_deductions(self, user_profile: Optional[DBUserProfile]) -> float:
+    def estimate_potential_deductions(self, user_profile: Optional[DBUserProfile]) -> float:
         """Estimate potential deductions based on profile."""
         if not user_profile:
             return 1230  # Standard work expense allowance

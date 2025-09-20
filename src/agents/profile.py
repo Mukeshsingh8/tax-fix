@@ -53,18 +53,18 @@ class ProfileAgent(BaseAgent):
         
         # Handle different profile request types
         if "update profile" in text.lower() or "my profile" in text.lower():
-            return await self._handle_profile_update_request(text, user_id)
+            return await self.handle_profile_update_request(text, user_id)
         elif "my details" in text.lower() or "my information" in text.lower():
-            return await self._provide_profile_summary(user_id)
+            return await self.provide_profile_summary(user_id)
         elif "create profile" in text.lower():
-            return await self._handle_profile_creation_request(text, user_id)
+            return await self.handle_profile_creation_request(text, user_id)
         elif "help with profile" in text.lower():
-            return await self._provide_profile_help()
+            return await self.provide_profile_help()
         else:
             # Try to extract and update profile information passively
-            return await self._handle_passive_profile_update(text, user_id)
+            return await self.handle_passive_profile_update(text, user_id)
 
-    async def _handle_profile_update_request(self, text: str, user_id: str) -> AgentResponse:
+    async def handle_profile_update_request(self, text: str, user_id: str) -> AgentResponse:
         """Handle explicit requests to update profile."""
         # Extract profile information from text
         extracted_info = await self.profile_service.extract_profile_info(text)
@@ -83,7 +83,7 @@ class ProfileAgent(BaseAgent):
             return await self.create_response(
                 content="Your profile has been updated successfully!",
                 confidence=0.9,
-                metadata={"updated_profile": self._profile_to_dict(updated_profile)},
+                metadata={"updated_profile": self.profile_to_dict(updated_profile)},
                 reasoning="Profile updated using ProfileService."
             )
         else:
@@ -93,7 +93,7 @@ class ProfileAgent(BaseAgent):
                 reasoning="Profile update failed."
             )
 
-    async def _handle_profile_creation_request(self, text: str, user_id: str) -> AgentResponse:
+    async def handle_profile_creation_request(self, text: str, user_id: str) -> AgentResponse:
         """Handle requests to create a new profile."""
         # Extract profile information from text
         extracted_info = await self.profile_service.extract_profile_info(text)
@@ -112,7 +112,7 @@ class ProfileAgent(BaseAgent):
             return await self.create_response(
                 content="Your new profile has been created successfully!",
                 confidence=0.9,
-                metadata={"new_profile": self._profile_to_dict(new_profile)},
+                metadata={"new_profile": self.profile_to_dict(new_profile)},
                 reasoning="New profile created using ProfileService."
             )
         else:
@@ -122,7 +122,7 @@ class ProfileAgent(BaseAgent):
                 reasoning="Profile creation failed."
             )
 
-    async def _handle_passive_profile_update(self, text: str, user_id: str) -> AgentResponse:
+    async def handle_passive_profile_update(self, text: str, user_id: str) -> AgentResponse:
         """Handle passive profile updates from conversation."""
         # Extract and update profile in one operation
         updated_profile, warnings = await self.profile_service.extract_and_update_profile(user_id, text)
@@ -132,7 +132,7 @@ class ProfileAgent(BaseAgent):
             return await self.create_response(
                 content=f"I've updated your profile with the new information you provided.{warning_text}",
                 confidence=0.8,
-                metadata={"updated_profile": self._profile_to_dict(updated_profile)},
+                metadata={"updated_profile": self.profile_to_dict(updated_profile)},
                 reasoning="Profile updated passively from conversation."
             )
         else:
@@ -142,7 +142,7 @@ class ProfileAgent(BaseAgent):
                 reasoning="No profile information extracted from message."
             )
 
-    async def _provide_profile_summary(self, user_id: str) -> AgentResponse:
+    async def provide_profile_summary(self, user_id: str) -> AgentResponse:
         """Provide a summary of the user's current profile."""
         current_profile = await self.profile_service.get_user_profile(user_id)
         
@@ -153,7 +153,7 @@ class ProfileAgent(BaseAgent):
                 reasoning="User requested profile summary but no profile exists."
             )
 
-        profile_dict = self._profile_to_dict(current_profile)
+        profile_dict = self.profile_to_dict(current_profile)
         summary_content = "Here is your current profile information:\n\n"
         
         for key, value in profile_dict.items():
@@ -168,7 +168,7 @@ class ProfileAgent(BaseAgent):
             reasoning="Provided user profile summary."
         )
 
-    async def _provide_profile_help(self) -> AgentResponse:
+    async def provide_profile_help(self) -> AgentResponse:
         """Provide guidance on profile management."""
         help_content = """I can help you manage your tax profile in several ways:
 
@@ -192,7 +192,7 @@ What would you like to update or learn about?"""
             reasoning="Provided profile management help."
         )
 
-    def _profile_to_dict(self, profile: UserProfile) -> Dict[str, Any]:
+    def profile_to_dict(self, profile: UserProfile) -> Dict[str, Any]:
         """Convert UserProfile object to dictionary."""
         try:
             if not profile:

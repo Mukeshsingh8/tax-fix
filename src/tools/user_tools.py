@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 # Helpers
 # -------------------------
 
-def _clean_updates(updates: Dict[str, Any]) -> Dict[str, Any]:
+def clean_updates(updates: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normalize and whitelist update fields to avoid accidental schema drift.
     Casts common numeric fields and trims strings.
@@ -102,7 +102,7 @@ def _clean_updates(updates: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
-def _merge_lists(existing: Optional[list], incoming: Optional[list], max_len: int = 16) -> list:
+def merge_lists(existing: Optional[list], incoming: Optional[list], max_len: int = 16) -> list:
     """Merge two lists of strings with de-duplication and length cap."""
     existing = existing or []
     incoming = incoming or []
@@ -122,7 +122,7 @@ def _merge_lists(existing: Optional[list], incoming: Optional[list], max_len: in
     return out
 
 
-def _apply_updates(profile: UserProfile, updates: Dict[str, Any]) -> UserProfile:
+def apply_updates(profile: UserProfile, updates: Dict[str, Any]) -> UserProfile:
     """
     Apply updates to a profile safely, respecting types where possible.
     Uses pydantic re-validation by reconstructing the model after merge.
@@ -132,7 +132,7 @@ def _apply_updates(profile: UserProfile, updates: Dict[str, Any]) -> UserProfile
 
     for k, v in updates.items():
         if k == "tax_goals":
-            merged[k] = _merge_lists(base.get("tax_goals"), v)
+            merged[k] = merge_lists(base.get("tax_goals"), v)
         else:
             merged[k] = v
 
@@ -196,11 +196,11 @@ class UserTools:
         Returns the updated profile as dict on success, None on failure.
         """
         try:
-            cleaned = _clean_updates(updates)
+            cleaned = clean_updates(updates)
             current = await self.database.get_user_profile(user_id)
 
             if current:
-                new_profile = _apply_updates(current, cleaned)
+                new_profile = apply_updates(current, cleaned)
                 saved = await self.database.update_user_profile(new_profile)
                 logger.info(f"Updated user profile for {user_id}: {cleaned}")
                 return to_dict(saved) if saved else None
@@ -249,7 +249,7 @@ class UserTools:
             current = to_dict(profile)
             current_count = int(current.get("conversation_count") or 0)
             new_count = max(0, current_count + int(increment))
-            patched = _apply_updates(profile, {"conversation_count": new_count})
+            patched = apply_updates(profile, {"conversation_count": new_count})
             saved = await self.database.update_user_profile(patched)
             return saved is not None
 

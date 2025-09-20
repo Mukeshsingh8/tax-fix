@@ -28,11 +28,11 @@ class DatabaseService(BaseService, DatabaseMixin):
     async def create_user(self, user: User) -> User:
         return self.safe_database_operation(
             "create_user",
-            self._create_user_operation,
+            self.create_user_operation,
             user
         )
     
-    def _create_user_operation(self, user: User) -> User:
+    def create_user_operation(self, user: User) -> User:
         """Internal operation for creating a user."""
         data = user.dict()
         if isinstance(data.get("created_at"), datetime):
