@@ -831,6 +831,154 @@ async def get_user_learning(
         )
 
 
+@app.get("/user/expenses")
+async def get_user_expenses(
+    authorization: str = Header(None),
+    auth_svc: AuthService = Depends(get_auth_service),
+    db_svc: DatabaseService = Depends(get_database_service)
+):
+    """Get user expenses."""
+    try:
+        # Extract token from Authorization header
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization header"
+            )
+        token = authorization.split(" ")[1]
+        
+        # Verify user token
+        user = await auth_svc.get_current_user(token)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
+        
+        # Get user expenses
+        from src.tools.expense_tools import ExpenseTools
+        expense_tools = ExpenseTools(db_svc)
+        expenses = await expense_tools.read_expenses(user.user_id)
+        
+        # Get expense summary
+        summary = await expense_tools.get_expense_summary(user.user_id)
+        
+        return {
+            "success": True,
+            "expenses": expenses,
+            "summary": summary
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get user expenses error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting user expenses: {str(e)}"
+        )
+
+
+@app.get("/user/dashboard-data")
+async def get_user_dashboard_data(
+    authorization: str = Header(None),
+    auth_svc: AuthService = Depends(get_auth_service),
+    db_svc: DatabaseService = Depends(get_database_service)
+):
+    """Get comprehensive dashboard data for user."""
+    try:
+        # Extract token from Authorization header
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization header"
+            )
+        token = authorization.split(" ")[1]
+        
+        # Verify user token
+        user = await auth_svc.get_current_user(token)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
+        
+        # Get all user data for dashboard
+        from src.tools.expense_tools import ExpenseTools
+        
+        # User profile
+        profile = await db_svc.get_user_profile(user.user_id)
+        
+        # Expenses
+        expense_tools = ExpenseTools(db_svc)
+        expenses = await expense_tools.read_expenses(user.user_id)
+        expense_summary = await expense_tools.get_expense_summary(user.user_id)
+        
+        # Tax documents
+        tax_documents = await db_svc.get_user_tax_documents(user.user_id)
+        
+        # Calculate tax estimates if profile exists
+        tax_data = {}
+        if profile and profile.annual_income:
+            # Basic tax calculation
+            income = profile.annual_income
+            grundfreibetrag = 11604  # Basic allowance 2024
+            taxable_income = max(0, income - grundfreibetrag)
+            
+            # Simplified tax calculation
+            if taxable_income <= 0:
+                income_tax = 0
+            elif taxable_income <= 62810:
+                income_tax = taxable_income * 0.14
+            else:
+                income_tax = 62810 * 0.14 + (taxable_income - 62810) * 0.42
+            
+            solidarity_surcharge = income_tax * 0.055
+            church_tax = income_tax * 0.09
+            total_tax = income_tax + solidarity_surcharge + church_tax
+            
+            tax_data = {
+                "annual_income": income,
+                "grundfreibetrag": grundfreibetrag,
+                "taxable_income": taxable_income,
+                "income_tax": income_tax,
+                "solidarity_surcharge": solidarity_surcharge,
+                "church_tax": church_tax,
+                "total_tax": total_tax,
+                "net_income": income - total_tax,
+                "effective_tax_rate": (total_tax / income * 100) if income > 0 else 0
+            }
+        
+        return {
+            "success": True,
+            "profile": profile.dict() if profile else None,
+            "expenses": {
+                "items": expenses,
+                "summary": expense_summary
+            },
+            "tax_documents": [
+                {
+                    "id": doc.id,
+                    "document_type": doc.document_type,
+                    "year": doc.year,
+                    "amount": doc.amount,
+                    "description": doc.description,
+                    "metadata": doc.metadata,
+                    "created_at": doc.created_at.isoformat() if doc.created_at else None
+                } for doc in tax_documents
+            ],
+            "tax_calculations": tax_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get dashboard data error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting dashboard data: {str(e)}"
+        )
+
 
 if __name__ == "__main__":
     uvicorn.run(

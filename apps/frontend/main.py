@@ -737,8 +737,14 @@ class TaxFixFrontend:
         with st.form("chat_form", clear_on_submit=False):
             col1, col2 = st.columns([4, 1])
             with col1:
+                # Check for pre-filled message from dashboard
+                prefill_value = st.session_state.get('prefill_message', '')
+                if prefill_value:
+                    st.session_state.prefill_message = ''  # Clear after use
+                
                 user_input = st.text_input(
                     "Ask me anything about German taxes...", 
+                    value=prefill_value,
                     placeholder="What are the tax deductions I can claim?",
                     key=f"chat_input_field_{st.session_state.get('input_clear_counter', 0)}",
                     disabled=st.session_state.is_processing,
@@ -888,123 +894,334 @@ class TaxFixFrontend:
         </script>
         """, unsafe_allow_html=True)
     
+    def get_dashboard_data(self) -> Dict:
+        """Get comprehensive dashboard data from API."""
+        response = self.make_api_request("/user/dashboard-data", token=st.session_state.token)
+        if "error" not in response and response.get("success"):
+            return response
+        else:
+            st.error(f"Failed to load dashboard data: {response.get('error', 'Unknown error')}")
+            return {}
+
     def render_dashboard(self):
-        """Render tax dashboard with visualizations."""
-        st.markdown("### 📊 Tax Dashboard")
+        """Render comprehensive tax dashboard with all user data."""
+        st.markdown("### 📊 Comprehensive Tax Dashboard")
         
-        if not st.session_state.user_profile:
+        # Load dashboard data
+        dashboard_data = self.get_dashboard_data()
+        if not dashboard_data:
+            return
+            
+        profile = dashboard_data.get("profile")
+        expenses_data = dashboard_data.get("expenses", {})
+        tax_calculations = dashboard_data.get("tax_calculations", {})
+        tax_documents = dashboard_data.get("tax_documents", [])
+        
+        if not profile:
             st.warning("Please complete your profile to see personalized insights.")
             return
         
-        profile = st.session_state.user_profile
-        income = profile.get('annual_income', 0)
-        
-        if not income:
-            st.warning("Please set your annual income to see tax calculations.")
-            return
-        
-        # Tax calculations (simplified)
-        grundfreibetrag = 11604  # Basic allowance 2024
-        taxable_income = max(0, income - grundfreibetrag)
-        
-        # Simplified tax calculation
-        if taxable_income <= 0:
-            income_tax = 0
-        elif taxable_income <= 62810:
-            income_tax = taxable_income * 0.14
-        else:
-            income_tax = 62810 * 0.14 + (taxable_income - 62810) * 0.42
-        
-        solidarity_surcharge = income_tax * 0.055
-        church_tax = income_tax * 0.09
-        total_tax = income_tax + solidarity_surcharge + church_tax
-        
-        # Create columns for metrics
+        # === PROFILE OVERVIEW SECTION ===
+        st.markdown("#### 👤 Profile Overview")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.metric("Annual Income", f"€{income:,.0f}")
+            st.metric("Employment Status", profile.get('employment_status', 'Not set').replace('_', ' ').title())
             st.markdown('</div>', unsafe_allow_html=True)
         
         with col2:
             st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.metric("Income Tax", f"€{income_tax:,.0f}")
+            st.metric("Filing Status", profile.get('filing_status', 'Not set').replace('_', ' ').title())
             st.markdown('</div>', unsafe_allow_html=True)
         
         with col3:
             st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.metric("Total Tax", f"€{total_tax:,.0f}")
+            st.metric("Dependents", str(profile.get('dependents', 0)))
             st.markdown('</div>', unsafe_allow_html=True)
         
         with col4:
             st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            net_income = income - total_tax
-            st.metric("Net Income", f"€{net_income:,.0f}")
+            risk_tolerance = profile.get('risk_tolerance', 'Not set').title()
+            st.metric("Risk Tolerance", risk_tolerance)
             st.markdown('</div>', unsafe_allow_html=True)
+
+        # === TAX SUMMARY SECTION ===
+        if tax_calculations:
+            st.markdown("#### 💰 Tax Summary")
+            col1, col2, col3, col4, col5 = st.columns(5)
+            
+            with col1:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Gross Income", f"€{tax_calculations.get('annual_income', 0):,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Taxable Income", f"€{tax_calculations.get('taxable_income', 0):,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Income Tax", f"€{tax_calculations.get('income_tax', 0):,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col4:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Total Tax", f"€{tax_calculations.get('total_tax', 0):,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col5:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                net_income = tax_calculations.get('net_income', 0)
+                st.metric("Net Income", f"€{net_income:,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        # === EXPENSES SECTION ===
+        st.markdown("#### 💳 Expense Tracking")
         
-        # Tax breakdown chart
-        st.markdown("#### 📈 Tax Breakdown")
+        expenses_summary = expenses_data.get("summary", {})
+        expenses_list = expenses_data.get("items", [])
         
-        tax_data = {
-            'Category': ['Income Tax', 'Solidarity Surcharge', 'Church Tax', 'Net Income'],
-            'Amount': [income_tax, solidarity_surcharge, church_tax, net_income],
-            'Color': ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
-        }
-        
-        fig = px.pie(
-            values=tax_data['Amount'],
-            names=tax_data['Category'],
-            title="Tax Breakdown",
-            color_discrete_sequence=tax_data['Color']
-        )
-        fig.update_traces(textposition='inside', textinfo='percent+label')
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Monthly income chart
-        st.markdown("#### 📅 Monthly Income Flow")
-        
-        monthly_data = {
-            'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            'Gross Income': [income/12] * 12,
-            'Net Income': [net_income/12] * 12,
-            'Tax': [total_tax/12] * 12
-        }
-        
-        df = pd.DataFrame(monthly_data)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['Month'], y=df['Gross Income'], name='Gross Income', line=dict(color='#667eea')))
-        fig.add_trace(go.Scatter(x=df['Month'], y=df['Net Income'], name='Net Income', line=dict(color='#4ECDC4')))
-        fig.add_trace(go.Scatter(x=df['Month'], y=df['Tax'], name='Tax', line=dict(color='#FF6B6B')))
-        
-        fig.update_layout(
-            title="Monthly Income Flow",
-            xaxis_title="Month",
-            yaxis_title="Amount (€)",
-            hovermode='x unified'
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Tax optimization suggestions
-        st.markdown("#### 💡 Tax Optimization Suggestions")
+        if expenses_summary and expenses_summary.get("total_expenses", 0) > 0:
+            # Expense summary metrics
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Total Expenses", str(expenses_summary.get("total_expenses", 0)))
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Total Amount", f"€{expenses_summary.get('total_amount', 0):,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Average Expense", f"€{expenses_summary.get('average_expense', 0):,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col4:
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                # Calculate potential tax savings (simplified)
+                potential_savings = expenses_summary.get('total_amount', 0) * 0.3  # Rough estimate
+                st.metric("Est. Tax Savings", f"€{potential_savings:,.0f}")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Expense category breakdown
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("##### 📊 Expenses by Category")
+                category_breakdown = expenses_summary.get("category_breakdown", {})
+                if category_breakdown:
+                    # Create pie chart for categories
+                    categories = list(category_breakdown.keys())
+                    amounts = list(category_breakdown.values())
+                    
+                    fig = px.pie(
+                        values=amounts,
+                        names=categories,
+                        title="Expense Categories",
+                        color_discrete_sequence=px.colors.qualitative.Set3
+                    )
+                    fig.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No expense categories to display")
+            
+            with col2:
+                st.markdown("##### 📅 Monthly Spending")
+                monthly_breakdown = expenses_summary.get("monthly_breakdown", {})
+                if monthly_breakdown:
+                    # Create bar chart for monthly spending
+                    months = list(monthly_breakdown.keys())
+                    amounts = list(monthly_breakdown.values())
+                    
+                    fig = px.bar(
+                        x=months,
+                        y=amounts,
+                        title="Monthly Spending",
+                        labels={"x": "Month", "y": "Amount (€)"},
+                        color=amounts,
+                        color_continuous_scale="viridis"
+                    )
+                    fig.update_layout(showlegend=False)
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No monthly data to display")
+            
+            # Recent expenses table
+            st.markdown("##### 📝 Recent Expenses")
+            if expenses_list:
+                recent_expenses = sorted(expenses_list, key=lambda x: x.get('created_at', ''), reverse=True)[:10]
+                expense_df = pd.DataFrame([
+                    {
+                        "Description": exp.get("description", ""),
+                        "Amount": f"€{exp.get('amount', 0):.2f}",
+                        "Category": exp.get("category", "").title(),
+                        "Date": exp.get("date_incurred", ""),
+                        "Status": exp.get("status", "").title()
+                    }
+                    for exp in recent_expenses
+                ])
+                st.dataframe(expense_df, use_container_width=True)
+            else:
+                st.info("No expenses recorded yet")
+        else:
+            st.info("💡 Start tracking your expenses to see detailed analytics and optimize your tax deductions!")
+            if st.button("💬 Ask AI to Help Track Expenses", use_container_width=True):
+                # Switch to chat tab with pre-filled message
+                st.session_state.switch_to_chat = True
+                st.session_state.prefill_message = "Help me track my tax-deductible expenses"
+                st.rerun()
+
+        # === TAX BREAKDOWN VISUALIZATION ===
+        if tax_calculations:
+            st.markdown("#### 📈 Tax Breakdown Analysis")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("##### 🥧 Tax Composition")
+                # Tax breakdown pie chart
+                tax_components = {
+                    'Income Tax': tax_calculations.get('income_tax', 0),
+                    'Solidarity Surcharge': tax_calculations.get('solidarity_surcharge', 0),
+                    'Church Tax': tax_calculations.get('church_tax', 0),
+                    'Net Income': tax_calculations.get('net_income', 0)
+                }
+                
+                fig = px.pie(
+                    values=list(tax_components.values()),
+                    names=list(tax_components.keys()),
+                    title="Income Distribution",
+                    color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+                )
+                fig.update_traces(textposition='inside', textinfo='percent+label')
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                st.markdown("##### 📊 Tax Rate Analysis")
+                effective_rate = tax_calculations.get('effective_tax_rate', 0)
+                
+                # Tax rate gauge
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number+delta",
+                    value=effective_rate,
+                    title={'text': "Effective Tax Rate (%)"},
+                    domain={'x': [0, 1], 'y': [0, 1]},
+                    gauge={
+                        'axis': {'range': [0, 50]},
+                        'bar': {'color': "#667eea"},
+                        'steps': [
+                            {'range': [0, 15], 'color': "lightgray"},
+                            {'range': [15, 30], 'color': "gray"},
+                            {'range': [30, 50], 'color': "darkgray"}
+                        ],
+                        'threshold': {
+                            'line': {'color': "red", 'width': 4},
+                            'thickness': 0.75,
+                            'value': 42
+                        }
+                    }
+                ))
+                st.plotly_chart(fig, use_container_width=True)
+
+        # === OPTIMIZATION SUGGESTIONS ===
+        st.markdown("#### 💡 Smart Tax Optimization")
         
         suggestions = []
         
+        # Income-based suggestions
+        income = tax_calculations.get('annual_income', 0) if tax_calculations else profile.get('annual_income', 0)
         if income > 50000:
-            suggestions.append("Consider contributing to a Riester pension for tax benefits")
+            suggestions.append({
+                "icon": "🏦",
+                "title": "Riester Pension Contribution",
+                "description": "Consider contributing to a Riester pension for tax benefits",
+                "potential_savings": "Up to €2,100/year"
+            })
         
+        # Family-based suggestions
         if profile.get('dependents', 0) > 0:
-            suggestions.append("Make sure to claim Kinderfreibetrag (child allowance)")
+            suggestions.append({
+                "icon": "👶",
+                "title": "Child Allowance (Kinderfreibetrag)",
+                "description": "Ensure you're claiming all child-related tax benefits",
+                "potential_savings": f"€{profile.get('dependents', 0) * 3648}/year"
+            })
         
+        # Employment-based suggestions
         if profile.get('employment_status') == 'employed':
-            suggestions.append("Track your Werbungskosten (work-related expenses)")
+            suggestions.append({
+                "icon": "💼",
+                "title": "Work-Related Expenses (Werbungskosten)",
+                "description": "Track commuting, equipment, and professional development costs",
+                "potential_savings": "Up to €1,000/year"
+            })
         
-        suggestions.append("Consider health insurance and pension contributions for tax deductions")
+        # Expense-based suggestions
+        if expenses_summary and expenses_summary.get("total_amount", 0) > 1000:
+            suggestions.append({
+                "icon": "📊",
+                "title": "Expense Optimization",
+                "description": "Review and categorize expenses for maximum deductions",
+                "potential_savings": f"€{expenses_summary.get('total_amount', 0) * 0.25:.0f}/year"
+            })
         
-        for i, suggestion in enumerate(suggestions, 1):
-            st.markdown(f"{i}. {suggestion}")
+        # Health & Insurance
+        suggestions.append({
+            "icon": "🏥",
+            "title": "Health & Insurance Deductions",
+            "description": "Maximize health insurance and pension contribution deductions",
+            "potential_savings": "Up to €1,900/year"
+        })
+        
+        # Display suggestions in cards
+        if suggestions:
+            for i, suggestion in enumerate(suggestions):
+                with st.expander(f"{suggestion['icon']} {suggestion['title']} - {suggestion['potential_savings']}"):
+                    st.markdown(f"**{suggestion['description']}**")
+                    st.markdown(f"💰 **Potential Annual Savings:** {suggestion['potential_savings']}")
+                    if st.button(f"💬 Learn More About {suggestion['title']}", key=f"suggestion_{i}"):
+                        st.session_state.switch_to_chat = True
+                        st.session_state.prefill_message = f"Tell me more about {suggestion['title']} and how I can benefit from it"
+                        st.rerun()
+        
+        # === ACTION BUTTONS ===
+        st.markdown("#### 🚀 Quick Actions")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.button("💬 Ask Tax Question", use_container_width=True):
+                st.session_state.switch_to_chat = True
+                st.session_state.prefill_message = "I have a tax question about"
+                st.rerun()
+        
+        with col2:
+            if st.button("📝 Add Expense", use_container_width=True):
+                st.session_state.switch_to_chat = True
+                st.session_state.prefill_message = "Help me add a new expense"
+                st.rerun()
+        
+        with col3:
+            if st.button("🔍 Review Deductions", use_container_width=True):
+                st.session_state.switch_to_chat = True
+                st.session_state.prefill_message = "Help me review my tax deductions"
+                st.rerun()
+        
+        with col4:
+            if st.button("📊 Update Profile", use_container_width=True):
+                st.session_state.switch_to_chat = True
+                st.session_state.prefill_message = "Help me update my tax profile"
+                st.rerun()
+        
+        # Check if user wants to switch to chat
+        if st.session_state.get('switch_to_chat', False):
+            st.session_state.switch_to_chat = False
+            # This will be handled in the main navigation
     
     def render_profile_creation_page(self):
         """Render profile creation page."""
@@ -1228,6 +1445,11 @@ class TaxFixFrontend:
             
             # Render sidebar
             self.render_sidebar()
+            
+            # Handle chat switching from dashboard
+            if st.session_state.get('switch_to_chat', False):
+                selected = "Chat"
+                st.session_state.switch_to_chat = False
             
             # Render selected page
             if selected == "Chat":
