@@ -6,15 +6,15 @@ Get up and running with TaxFix in under 10 minutes!
 
 - [ ] **Python 3.11+** installed
 - [ ] **Git** installed  
-- [ ] **Redis** server (we'll help you install this)
+- [ ] **Redis** server (document will help you install this)
 - [ ] **Groq API Key** ([Get one here](https://console.groq.com/))
-- [ ] **Supabase Account** ([Sign up here](https://supabase.com/))
+- [ ] **Supabase Account** ([Sign up here](https://supabase.com/)) -> I have attached the supabase keys in the Email (feel free to use that)
 
 ## 🎯 One-Command Setup
 
 ```bash
 # Clone and run automated setup
-git clone https://github.com/your-username/taxfix.git
+git clone https://github.com/Mukeshsingh8/tax-fix.git
 cd taxfix
 python scripts/setup.py
 ```
@@ -32,7 +32,7 @@ The setup script will:
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-username/taxfix.git
+git clone https://github.com/Mukeshsingh8/tax-fix.git
 cd taxfix
 
 # Create virtual environment
@@ -91,7 +91,7 @@ REDIS_URL=redis://localhost:6379
 
 1. Go to your **Supabase project dashboard**
 2. Open **SQL Editor**
-3. Copy contents of `supabase_schema_minimal.sql`
+3. Copy contents of `supabase_schema.sql`
 4. Execute the SQL to create tables
 
 ### 5. Run the Application
