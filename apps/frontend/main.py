@@ -1358,6 +1358,8 @@ class TaxFixFrontend:
             if st.button("💬 Ask Tax Question", use_container_width=True):
                 st.session_state.switch_to_chat = True
                 st.session_state.prefill_message = "I have a tax question about"
+                # Debug info
+                st.session_state.debug_last_action = "Ask Tax Question clicked"
                 st.rerun()
         
         with col2:
@@ -1748,51 +1750,61 @@ class TaxFixFrontend:
                 self.render_profile_creation_page()
                 return
             
-            # Handle switching between tabs BEFORE rendering the navigation
-            default_tab_index = 0  # Default to Chat
+            # Simple tab switching - override navigation when buttons are clicked
             if st.session_state.get('switch_to_chat', False):
-                default_tab_index = 0  # Chat
+                selected = "Chat"
                 st.session_state.switch_to_chat = False
+                # Increment nav key to force refresh
+                st.session_state.nav_key = st.session_state.get('nav_key', 0) + 1
             elif st.session_state.get('switch_to_dashboard', False):
-                default_tab_index = 1  # Dashboard
+                selected = "Dashboard"
                 st.session_state.switch_to_dashboard = False
-            elif st.session_state.get('current_tab'):
-                # Remember the last selected tab
+                st.session_state.nav_key = st.session_state.get('nav_key', 0) + 1
+            else:
+                # Normal navigation
                 tab_map = {"Chat": 0, "Dashboard": 1, "Profile": 2}
-                default_tab_index = tab_map.get(st.session_state.current_tab, 0)
-            
-            # Main navigation
-            selected = option_menu(
-                menu_title=None,
-                options=["Chat", "Dashboard", "Profile"],
-                icons=["chat-dots", "bar-chart", "person"],
-                menu_icon="cast",
-                default_index=default_tab_index,
-                orientation="horizontal",
-                key="main_nav",  # Add key to prevent reset
-                styles={
-                    "container": {"padding": "0!important", "background-color": "#fafafa"},
-                    "icon": {"color": "#667eea", "font-size": "25px"},
-                    "nav-link": {
-                        "font-size": "16px",
-                        "text-align": "center",
-                        "margin": "0px",
-                        "padding": "10px 20px",
-                        "color": "#333333",
-                        "background-color": "#ffffff",
-                        "border-radius": "8px",
-                        "--hover-color": "#e6e9ff"
-                    },
-                    "nav-link-selected": {
-                        "background-color": "#667eea",
-                        "color": "#ffffff",
-                        "border-radius": "8px"
-                    },
-                }
-            )
+                current_index = tab_map.get(st.session_state.get('current_tab', 'Chat'), 0)
+                
+                selected = option_menu(
+                    menu_title=None,
+                    options=["Chat", "Dashboard", "Profile"],
+                    icons=["chat-dots", "bar-chart", "person"],
+                    menu_icon="cast",
+                    default_index=current_index,
+                    orientation="horizontal",
+                    key=f"main_nav_{st.session_state.get('nav_key', 0)}",
+                    styles={
+                        "container": {"padding": "0!important", "background-color": "#fafafa"},
+                        "icon": {"color": "#667eea", "font-size": "25px"},
+                        "nav-link": {
+                            "font-size": "16px",
+                            "text-align": "center",
+                            "margin": "0px",
+                            "padding": "10px 20px",
+                            "color": "#333333",
+                            "background-color": "#ffffff",
+                            "border-radius": "8px",
+                            "--hover-color": "#e6e9ff"
+                        },
+                        "nav-link-selected": {
+                            "background-color": "#667eea",
+                            "color": "#ffffff",
+                            "border-radius": "8px"
+                        },
+                    }
+                )
             
             # Store current tab
             st.session_state.current_tab = selected
+            
+            # Debug information
+            if st.session_state.get('debug_mode', False):
+                st.sidebar.markdown("### 🐛 Debug Info")
+                st.sidebar.write(f"Selected tab: {selected}")
+                st.sidebar.write(f"Switch to chat: {st.session_state.get('switch_to_chat', False)}")
+                st.sidebar.write(f"Last action: {st.session_state.get('debug_last_action', 'None')}")
+                st.sidebar.write(f"Prefill message: {st.session_state.get('prefill_message', 'None')}")
+                st.sidebar.write(f"Nav key: {st.session_state.get('nav_key', 0)}")
             
             # Render sidebar
             self.render_sidebar()
