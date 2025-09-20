@@ -724,6 +724,7 @@ class TaxFixFrontend:
                 if st.button("➕ New Chat", use_container_width=True):
                     st.session_state.current_session_id = None
                     st.session_state.conversation_history = []
+                    st.session_state.switch_to_chat = True
                     st.rerun()
                 
                 st.markdown("---")
@@ -779,6 +780,7 @@ class TaxFixFrontend:
                 if st.button("➕ Start New Chat", use_container_width=True):
                     st.session_state.current_session_id = None
                     st.session_state.conversation_history = []
+                    st.session_state.switch_to_chat = True
                     st.rerun()
     
     def render_chat_interface(self):
@@ -1376,10 +1378,7 @@ class TaxFixFrontend:
                 st.session_state.prefill_message = "Help me update my tax profile"
                 st.rerun()
         
-        # Check if user wants to switch to chat
-        if st.session_state.get('switch_to_chat', False):
-            st.session_state.switch_to_chat = False
-            # This will be handled in the main navigation
+        # Note: Chat switching is now handled in the main navigation logic
     
     def render_profile_creation_page(self):
         """Render beautiful profile creation page."""
@@ -1749,14 +1748,28 @@ class TaxFixFrontend:
                 self.render_profile_creation_page()
                 return
             
+            # Handle switching between tabs BEFORE rendering the navigation
+            default_tab_index = 0  # Default to Chat
+            if st.session_state.get('switch_to_chat', False):
+                default_tab_index = 0  # Chat
+                st.session_state.switch_to_chat = False
+            elif st.session_state.get('switch_to_dashboard', False):
+                default_tab_index = 1  # Dashboard
+                st.session_state.switch_to_dashboard = False
+            elif st.session_state.get('current_tab'):
+                # Remember the last selected tab
+                tab_map = {"Chat": 0, "Dashboard": 1, "Profile": 2}
+                default_tab_index = tab_map.get(st.session_state.current_tab, 0)
+            
             # Main navigation
             selected = option_menu(
                 menu_title=None,
                 options=["Chat", "Dashboard", "Profile"],
                 icons=["chat-dots", "bar-chart", "person"],
                 menu_icon="cast",
-                default_index=0,
+                default_index=default_tab_index,
                 orientation="horizontal",
+                key="main_nav",  # Add key to prevent reset
                 styles={
                     "container": {"padding": "0!important", "background-color": "#fafafa"},
                     "icon": {"color": "#667eea", "font-size": "25px"},
@@ -1764,22 +1777,25 @@ class TaxFixFrontend:
                         "font-size": "16px",
                         "text-align": "center",
                         "margin": "0px",
-                        "--hover-color": "#eee"
+                        "padding": "10px 20px",
+                        "color": "#333333",
+                        "background-color": "#ffffff",
+                        "border-radius": "8px",
+                        "--hover-color": "#e6e9ff"
                     },
-                    "nav-link-selected": {"background-color": "#667eea"},
+                    "nav-link-selected": {
+                        "background-color": "#667eea",
+                        "color": "#ffffff",
+                        "border-radius": "8px"
+                    },
                 }
             )
             
+            # Store current tab
+            st.session_state.current_tab = selected
+            
             # Render sidebar
             self.render_sidebar()
-            
-            # Handle switching between tabs
-            if st.session_state.get('switch_to_chat', False):
-                selected = "Chat"
-                st.session_state.switch_to_chat = False
-            elif st.session_state.get('switch_to_dashboard', False):
-                selected = "Dashboard"
-                st.session_state.switch_to_dashboard = False
             
             # Render selected page
             if selected == "Chat":
