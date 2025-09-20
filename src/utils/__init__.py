@@ -19,6 +19,14 @@ from .tax_formatting import (
     format_insurance_details,
     format_deduction_savings,
 )
+from .expense_extraction import extract_expense_from_text
+from .error_handling import safe_agent_method, safe_execute, create_error_response
+from .guidance_generation import (
+    create_tax_guidance_prompt,
+    create_suggested_actions,
+    create_guidance_metadata,
+)
+# Agent routing functionality moved directly to orchestrator
 
 __all__ = [
     "to_dict",
@@ -39,4 +47,11 @@ __all__ = [
     "format_tax_calculation_section",
     "format_insurance_details",
     "format_deduction_savings",
+    "extract_expense_from_text",
+    "safe_agent_method",
+    "safe_execute",
+    "create_error_response",
+    "create_tax_guidance_prompt",
+    "create_suggested_actions", 
+    "create_guidance_metadata",
 ]

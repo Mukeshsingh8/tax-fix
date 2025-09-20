@@ -172,14 +172,22 @@ class TaxFixWorkflow:
                 )
 
             # Derive execution plan (names only, dedup while preserving order)
+            # Only include agents with confidence above threshold
+            CONFIDENCE_THRESHOLD = 0.4
             plan: List[str] = []
+            filtered_out = []
             for p in picks:
-                if p.agent not in plan:
+                if p.confidence >= CONFIDENCE_THRESHOLD and p.agent not in plan:
                     plan.append(p.agent)
+                elif p.confidence < CONFIDENCE_THRESHOLD:
+                    filtered_out.append(f"{p.agent}@{p.confidence:.2f}")
 
             logger.info(f"🧠 MULTI-AGENT ROUTING DECISION:")
             logger.info(f"   📊 Router picks: {[(p.agent, f'{p.confidence:.2f}', p.reasons) for p in picks]}")
-            logger.info(f"   📋 Initial execution plan: {plan}")
+            logger.info(f"   🎯 Confidence threshold: {CONFIDENCE_THRESHOLD}")
+            if filtered_out:
+                logger.info(f"   🚫 Filtered out (low confidence): {filtered_out}")
+            logger.info(f"   📋 Final execution plan: {plan}")
 
             # If orchestrator is combined with specialized agents, skip it here.
             # We'll synthesize ourselves; run orchestrator only when it's alone.

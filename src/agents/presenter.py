@@ -20,7 +20,7 @@ class PresenterAgent(BaseAgent):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(AgentType.ORCHESTRATOR, *args, **kwargs)  # Using ORCHESTRATOR as closest match
+        super().__init__(AgentType.PRESENTER, *args, **kwargs)
 
     async def get_system_prompt(self) -> str:
         return (

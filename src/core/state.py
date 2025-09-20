@@ -36,9 +36,10 @@ class Message(BaseModel):
 class AgentType(str, Enum):
     """Agent types."""
     ORCHESTRATOR = "orchestrator"
+    ACTION = "action"
     PROFILE = "profile"
     TAX_KNOWLEDGE = "tax_knowledge"
-    ACTION = "action"
+    PRESENTER = "presenter"
 
 
 class AgentResponse(BaseModel):
