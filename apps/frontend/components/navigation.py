@@ -2,7 +2,14 @@
 
 import streamlit as st
 from streamlit_option_menu import option_menu
-from ..utils.styles import get_navigation_styles
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from utils.styles import get_navigation_styles
 
 
 def render_navigation() -> str:

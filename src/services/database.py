@@ -5,41 +5,42 @@ from supabase import create_client, Client
 from datetime import datetime
 from ..models.user import User, UserProfile, TaxDocument
 from ..models.conversation import Conversation, Message
-from ..core.config import get_settings
-from ..core.logging import get_logger
-
-logger = get_logger(__name__)
+from .base_service import BaseService, DatabaseMixin
 
 
-class DatabaseService:
+class DatabaseService(BaseService, DatabaseMixin):
     """Database service for managing data persistence."""
     
     def __init__(self):
         """Initialize database service."""
-        self.settings = get_settings()
+        super().__init__("DatabaseService")
+        self.validate_required_settings("supabase_url", "supabase_service_key")
+        
         # Use service role key for custom authentication to bypass RLS when needed
         self.client: Client = create_client(
             self.settings.supabase_url,
             self.settings.supabase_service_key
         )
-        logger.info("Database service initialized")
     
     # ---------------------------
     # Users
     # ---------------------------
     async def create_user(self, user: User) -> User:
-        try:
-            data = user.dict()
-            if isinstance(data.get("created_at"), datetime):
-                data["created_at"] = data["created_at"].isoformat()
-            if isinstance(data.get("updated_at"), datetime):
-                data["updated_at"] = data["updated_at"].isoformat()
-            result = self.client.table("users").insert(data).execute()
-            logger.info(f"Created user: {user.id}")
-            return User(**result.data[0])
-        except Exception as e:
-            logger.error(f"Error creating user: {e}")
-            raise
+        return self.safe_database_operation(
+            "create_user",
+            self._create_user_operation,
+            user
+        )
+    
+    def _create_user_operation(self, user: User) -> User:
+        """Internal operation for creating a user."""
+        data = user.dict()
+        if isinstance(data.get("created_at"), datetime):
+            data["created_at"] = data["created_at"].isoformat()
+        if isinstance(data.get("updated_at"), datetime):
+            data["updated_at"] = data["updated_at"].isoformat()
+        result = self.client.table("users").insert(data).execute()
+        return User(**result.data[0])
     
     async def get_user_by_email(self, email: str) -> Optional[User]:
         try:
@@ -48,7 +49,7 @@ class DatabaseService:
                 return User(**result.data[0])
             return None
         except Exception as e:
-            logger.error(f"Error getting user by email: {e}")
+            self.logger.error(f"Error getting user by email: {e}")
             return None
     
     async def get_user(self, user_id: str) -> Optional[User]:
@@ -58,7 +59,7 @@ class DatabaseService:
                 return User(**result.data[0])
             return None
         except Exception as e:
-            logger.error(f"Error getting user: {e}")
+            self.logger.error(f"Error getting user: {e}")
             return None
     
     async def update_user(self, user: User) -> User:
@@ -69,10 +70,10 @@ class DatabaseService:
             if isinstance(data.get("updated_at"), datetime):
                 data["updated_at"] = data["updated_at"].isoformat()
             result = self.client.table("users").update(data).eq("id", user.id).execute()
-            logger.info(f"Updated user: {user.id}")
+            self.logger.info(f"Updated user: {user.id}")
             return User(**result.data[0])
         except Exception as e:
-            logger.error(f"Error updating user: {e}")
+            self.logger.error(f"Error updating user: {e}")
             raise
     
     # ---------------------------
@@ -85,10 +86,10 @@ class DatabaseService:
                 if f in data and isinstance(data[f], datetime):
                     data[f] = data[f].isoformat()
             result = self.client.table("user_profiles").insert(data).execute()
-            logger.info(f"Created profile for user: {profile.user_id}")
+            self.logger.info(f"Created profile for user: {profile.user_id}")
             return UserProfile(**result.data[0])
         except Exception as e:
-            logger.error(f"Error creating user profile: {e}")
+            self.logger.error(f"Error creating user profile: {e}")
             raise
     
     async def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
@@ -98,7 +99,7 @@ class DatabaseService:
                 return UserProfile(**result.data[0])
             return None
         except Exception as e:
-            logger.error(f"Error getting user profile: {e}")
+            self.logger.error(f"Error getting user profile: {e}")
             return None
     
     async def update_user_profile(self, profile: UserProfile) -> UserProfile:
@@ -108,17 +109,17 @@ class DatabaseService:
                 if f in data and isinstance(data[f], datetime):
                     data[f] = data[f].isoformat()
             result = self.client.table("user_profiles").update(data).eq("user_id", profile.user_id).execute()
-            logger.info(f"Updated profile for user: {profile.user_id}")
+            self.logger.info(f"Updated profile for user: {profile.user_id}")
             return UserProfile(**result.data[0])
         except Exception as e:
-            logger.error(f"Error updating user profile: {e}")
+            self.logger.error(f"Error updating user profile: {e}")
             raise
     
     async def create_or_update_user_profile(self, profile_data: Dict[str, Any]) -> Optional[UserProfile]:
         try:
             user_id = profile_data.get("user_id")
             if not user_id:
-                logger.error("User ID is required for profile creation/update")
+                self.logger.error("User ID is required for profile creation/update")
                 return None
             
             existing = await self.get_user_profile(user_id)
@@ -127,18 +128,18 @@ class DatabaseService:
             if existing:
                 profile_data["updated_at"] = now_iso
                 result = self.client.table("user_profiles").update(profile_data).eq("user_id", user_id).execute()
-                logger.info(f"Updated profile for user: {user_id}")
+                self.logger.info(f"Updated profile for user: {user_id}")
             else:
                 profile_data.setdefault("created_at", now_iso)
                 profile_data.setdefault("updated_at", now_iso)
                 result = self.client.table("user_profiles").insert(profile_data).execute()
-                logger.info(f"Created profile for user: {user_id}")
+                self.logger.info(f"Created profile for user: {user_id}")
             
             if result.data:
                 return UserProfile(**result.data[0])
             return None
         except Exception as e:
-            logger.error(f"Error creating/updating user profile: {e}")
+            self.logger.error(f"Error creating/updating user profile: {e}")
             raise
     
     # ---------------------------
@@ -151,14 +152,14 @@ class DatabaseService:
                 if f in data and isinstance(data[f], datetime):
                     data[f] = data[f].isoformat()
             result = self.client.table("conversations").insert(data).execute()
-            logger.info(f"Created conversation: {conversation.id}")
+            self.logger.info(f"Created conversation: {conversation.id}")
             db = result.data[0]
             db["context"] = {}
             db["status"] = "active"
             db["messages"] = []
             return Conversation(**db)
         except Exception as e:
-            logger.error(f"Error creating conversation: {e}")
+            self.logger.error(f"Error creating conversation: {e}")
             raise
     
     async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
@@ -172,7 +173,7 @@ class DatabaseService:
                 return Conversation(**db)
             return None
         except Exception as e:
-            logger.error(f"Error getting conversation: {e}")
+            self.logger.error(f"Error getting conversation: {e}")
             return None
     
     async def get_user_conversations(self, user_id: str, limit: int = 10) -> List[Conversation]:
@@ -186,7 +187,7 @@ class DatabaseService:
                 out.append(Conversation(**conv))
             return out
         except Exception as e:
-            logger.error(f"Error getting user conversations: {e}")
+            self.logger.error(f"Error getting user conversations: {e}")
             return []
     
     async def update_conversation(self, conversation: Conversation) -> Conversation:
@@ -196,32 +197,32 @@ class DatabaseService:
                 if f in data and isinstance(data[f], datetime):
                     data[f] = data[f].isoformat()
             result = self.client.table("conversations").update(data).eq("id", conversation.id).execute()
-            logger.info(f"Updated conversation: {conversation.id}")
+            self.logger.info(f"Updated conversation: {conversation.id}")
             db = result.data[0]
             db["context"] = conversation.context
             db["status"] = conversation.status
             db["messages"] = conversation.messages
             return Conversation(**db)
         except Exception as e:
-            logger.error(f"Error updating conversation: {e}")
+            self.logger.error(f"Error updating conversation: {e}")
             raise
     
     async def update_conversation_title(self, conversation_id: str, title: str) -> bool:
         try:
             self.client.table("conversations").update({"title": title}).eq("id", conversation_id).execute()
-            logger.info(f"Updated conversation title: {conversation_id} -> {title}")
+            self.logger.info(f"Updated conversation title: {conversation_id} -> {title}")
             return True
         except Exception as e:
-            logger.error(f"Error updating conversation title: {e}")
+            self.logger.error(f"Error updating conversation title: {e}")
             return False
     
     async def delete_conversation(self, conversation_id: str) -> bool:
         try:
             self.client.table("conversations").delete().eq("id", conversation_id).execute()
-            logger.info(f"Deleted conversation: {conversation_id}")
+            self.logger.info(f"Deleted conversation: {conversation_id}")
             return True
         except Exception as e:
-            logger.error(f"Error deleting conversation: {e}")
+            self.logger.error(f"Error deleting conversation: {e}")
             return False
     
     # ---------------------------
@@ -230,7 +231,7 @@ class DatabaseService:
     async def add_message(self, message: Message) -> Message:
         try:
             data = message.dict()
-            logger.info(f"Adding message data: {data}")
+            self.logger.info(f"Adding message data: {data}")
 
             if "conversation_id" not in data or not data["conversation_id"]:
                 data["conversation_id"] = message.conversation_id
@@ -239,10 +240,10 @@ class DatabaseService:
                 data["timestamp"] = data["timestamp"].isoformat()
 
             result = self.client.table("messages").insert(data).execute()
-            logger.info(f"Added message: {message.id}, result: {result.data[0] if result.data else 'No data'}")
+            self.logger.info(f"Added message: {message.id}, result: {result.data[0] if result.data else 'No data'}")
             return Message(**result.data[0])
         except Exception as e:
-            logger.error(f"Error adding message: {e}")
+            self.logger.error(f"Error adding message: {e}")
             raise
     
     async def get_conversation_messages(self, conversation_id: str, limit: int = 50) -> List[Message]:
@@ -250,16 +251,16 @@ class DatabaseService:
             result = self.client.table("messages").select("*").eq("conversation_id", conversation_id).order("timestamp").limit(limit).execute()
             return [Message(**m) for m in result.data]
         except Exception as e:
-            logger.error(f"Error getting conversation messages: {e}")
+            self.logger.error(f"Error getting conversation messages: {e}")
             return []
     
     async def delete_message(self, message_id: str) -> bool:
         try:
             self.client.table("messages").delete().eq("id", message_id).execute()
-            logger.info(f"Deleted message: {message_id}")
+            self.logger.info(f"Deleted message: {message_id}")
             return True
         except Exception as e:
-            logger.error(f"Error deleting message: {e}")
+            self.logger.error(f"Error deleting message: {e}")
             return False
     
     # ---------------------------
@@ -274,7 +275,7 @@ class DatabaseService:
             if existing:
                 update_data = {"value": learning_summary, "updated_at": now_iso}
                 result = self.client.table("user_learning").update(update_data).eq("user_id", user_id).eq("learning_type", "user_profile_summary").execute()
-                logger.info(f"Updated user learning summary for user: {user_id}")
+                self.logger.info(f"Updated user learning summary for user: {user_id}")
                 return result.data[0] if result.data else {**existing, **update_data}
             else:
                 learning_data = {
@@ -289,10 +290,10 @@ class DatabaseService:
                     "updated_at": now_iso,
                 }
                 result = self.client.table("user_learning").insert(learning_data).execute()
-                logger.info(f"Created user learning summary for user: {user_id}")
+                self.logger.info(f"Created user learning summary for user: {user_id}")
                 return result.data[0] if result.data else learning_data
         except Exception as e:
-            logger.error(f"Error creating/updating user learning: {e}")
+            self.logger.error(f"Error creating/updating user learning: {e}")
             raise
     
     async def get_user_learning(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -300,16 +301,16 @@ class DatabaseService:
             result = self.client.table("user_learning").select("*").eq("user_id", user_id).eq("learning_type", "user_profile_summary").execute()
             return result.data[0] if result.data else None
         except Exception as e:
-            logger.error(f"Error getting user learning: {e}")
+            self.logger.error(f"Error getting user learning: {e}")
             return None
     
     async def delete_user_learning(self, user_id: str) -> bool:
         try:
             self.client.table("user_learning").delete().eq("user_id", user_id).eq("learning_type", "user_profile_summary").execute()
-            logger.info(f"Deleted user learning for user: {user_id}")
+            self.logger.info(f"Deleted user learning for user: {user_id}")
             return True
         except Exception as e:
-            logger.error(f"Error deleting user learning: {e}")
+            self.logger.error(f"Error deleting user learning: {e}")
             return False
     
     # ---------------------------
@@ -322,10 +323,10 @@ class DatabaseService:
                 if f in data and isinstance(data[f], datetime):
                     data[f] = data[f].isoformat()
             result = self.client.table("tax_documents").insert(data).execute()
-            logger.info(f"Created tax document: {document.id}")
+            self.logger.info(f"Created tax document: {document.id}")
             return TaxDocument(**result.data[0])
         except Exception as e:
-            logger.error(f"Error creating tax document: {e}")
+            self.logger.error(f"Error creating tax document: {e}")
             raise
     
     async def get_tax_document(self, document_id: str) -> Optional[TaxDocument]:
@@ -336,7 +337,7 @@ class DatabaseService:
                 return TaxDocument(**result.data[0])
             return None
         except Exception as e:
-            logger.error(f"Error getting tax document: {e}")
+            self.logger.error(f"Error getting tax document: {e}")
             return None
     
     async def get_user_tax_documents(self, user_id: str, year: Optional[int] = None) -> List[TaxDocument]:
@@ -347,7 +348,7 @@ class DatabaseService:
             result = query.order("created_at", desc=True).execute()
             return [TaxDocument(**doc) for doc in result.data]
         except Exception as e:
-            logger.error(f"Error getting tax documents: {e}")
+            self.logger.error(f"Error getting tax documents: {e}")
             return []
     
     async def update_tax_document(self, document: TaxDocument) -> Optional[TaxDocument]:
@@ -366,17 +367,17 @@ class DatabaseService:
                 return TaxDocument(**result.data[0])
             return None
         except Exception as e:
-            logger.error(f"Error updating tax document: {e}")
+            self.logger.error(f"Error updating tax document: {e}")
             return None
 
     async def delete_tax_document(self, document_id: str) -> bool:
         """(New) Delete a tax document by ID (used by ExpenseTools.delete_expense)."""
         try:
             self.client.table("tax_documents").delete().eq("id", document_id).execute()
-            logger.info(f"Deleted tax document: {document_id}")
+            self.logger.info(f"Deleted tax document: {document_id}")
             return True
         except Exception as e:
-            logger.error(f"Error deleting tax document: {e}")
+            self.logger.error(f"Error deleting tax document: {e}")
             return False
     
     # ---------------------------
@@ -419,5 +420,5 @@ class DatabaseService:
                 "last_activity": last_activity,
             }
         except Exception as e:
-            logger.error(f"Error getting user insights: {e}")
+            self.logger.error(f"Error getting user insights: {e}")
             return {"conversation_count": 0, "message_count": 0, "document_count": 0, "last_activity": None}

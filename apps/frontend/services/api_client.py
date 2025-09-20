@@ -1,8 +1,16 @@
 """API client for TaxFix backend communication."""
 
 import requests
+import json
 from typing import Dict, List, Any, Optional
-from ..config import API_BASE_URL
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from config import API_BASE_URL
 
 
 class APIClient:
@@ -67,7 +75,7 @@ class APIClient:
     def send_message(self, message: str, session_id: str, token: str) -> Dict:
         """Send message to chat."""
         return self.make_request("/chat/message", "POST", {
-            "content": message,
+            "message": message,  # Fixed: backend expects 'message', not 'content'
             "session_id": session_id
         }, token=token)
     
@@ -76,26 +84,41 @@ class APIClient:
         url = f"{self.base_url}/chat/message/stream"
         headers = {
             "Content-Type": "application/json",
+            "Accept": "text/event-stream",
             "Authorization": f"Bearer {token}"
         }
         
-        data = {
-            "content": message,
-            "session_id": session_id
-        }
-        
         try:
-            with requests.post(url, json=data, headers=headers, stream=True) as response:
-                if response.status_code == 200:
-                    for line in response.iter_lines():
-                        if line:
-                            decoded_line = line.decode('utf-8')
-                            if decoded_line.startswith('data: '):
-                                chunk = decoded_line[6:]  # Remove 'data: ' prefix
-                                if chunk.strip() and chunk != '[DONE]':
-                                    yield chunk
-                else:
-                    yield f"Error: {response.status_code} - {response.text}"
+            with requests.post(
+                url,
+                json={
+                    "message": message,
+                    "session_id": session_id,
+                },
+                headers=headers,
+                stream=True,
+                timeout=300,
+            ) as resp:
+                resp.raise_for_status()
+                for raw in resp.iter_lines(decode_unicode=True):
+                    if not raw:
+                        continue
+                    if raw.startswith("data: "):
+                        data = raw[6:]
+                        if data == "[DONE]":
+                            break
+                        # Parse JSON delta frames; fallback to raw text if parsing fails
+                        try:
+                            parsed = json.loads(data)
+                            delta = parsed.get("delta", "")
+                        except Exception:
+                            delta = data
+                        if delta:
+                            yield delta
+        except requests.exceptions.Timeout:
+            yield "Error: Request timed out. Please try again."
+        except requests.exceptions.ConnectionError:
+            yield "Error: Cannot connect to backend. Please make sure the backend is running."
         except Exception as e:
             yield f"Error: {str(e)}"
     
@@ -119,11 +142,11 @@ class APIClient:
     
     def get_conversation_messages(self, conversation_id: str, token: str) -> Dict:
         """Get messages from a conversation."""
-        return self.make_request(f"/user/conversations/{conversation_id}/messages", "GET", token=token)
+        return self.make_request(f"/conversation/{conversation_id}/messages", "GET", token=token)
     
     def delete_conversation(self, conversation_id: str, token: str) -> Dict:
         """Delete a conversation."""
-        return self.make_request(f"/user/conversations/{conversation_id}", "DELETE", token=token)
+        return self.make_request(f"/conversation/{conversation_id}", "DELETE", token=token)
     
     # Dashboard endpoints
     def get_dashboard_data(self, token: str) -> Dict:

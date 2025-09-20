@@ -1,7 +1,14 @@
 """CSS styles and styling utilities for TaxFix Frontend."""
 
 import streamlit as st
-from ..config import THEME_CONFIG
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from config import THEME_CONFIG
 
 def apply_global_styles():
     """Apply global CSS styles to the Streamlit app."""

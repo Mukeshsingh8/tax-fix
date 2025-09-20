@@ -5,8 +5,15 @@ import json
 import time
 import streamlit.components.v1 as components
 from typing import Dict, Optional
-from ..services.api_client import APIClient
-from ..config import STORAGE_KEYS
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from services.api_client import APIClient
+from config import STORAGE_KEYS
 
 
 class AuthManager:

@@ -48,7 +48,7 @@ class TaxDeductionAnalyzer:
             return scored_deductions[:5]
 
         except Exception as e:
-            logger.error(f"Deduction identification error: {e}")
+            self.logger.error(f"Deduction identification error: {e}")
             return []
 
     async def _score_deduction_relevance(
@@ -84,7 +84,7 @@ class TaxDeductionAnalyzer:
             return min(score, 1.0)
 
         except Exception as e:
-            logger.error(f"Deduction scoring error: {e}")
+            self.logger.error(f"Deduction scoring error: {e}")
             return 0.0
 
     def _score_profile_compatibility(
@@ -193,7 +193,7 @@ class TaxDeductionAnalyzer:
             return suggestions
 
         except Exception as e:
-            logger.error(f"Personalized suggestions error: {e}")
+            self.logger.error(f"Personalized suggestions error: {e}")
             return self._get_generic_suggestions()
 
     def _get_generic_suggestions(self) -> List[Dict[str, str]]:
@@ -235,7 +235,7 @@ class TaxDeductionAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Deduction analysis error: {e}")
+            self.logger.error(f"Deduction analysis error: {e}")
             return {}
 
     def _estimate_potential_deductions(self, user_profile: Optional[DBUserProfile]) -> float:

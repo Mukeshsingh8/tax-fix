@@ -59,39 +59,44 @@ class StreamingHelper:
     """Handles streaming response processing."""
     
     @staticmethod
-    def block_stream(token_iter: Iterator[str], buffer_size: int = 150):
-        """Process streaming tokens in blocks."""
-        buffer = ""
-        last_sent = 0
-        processor = MarkdownProcessor()
-        
+    def block_stream(token_iter: Iterator[str]):
+        """
+        Re-chunk incoming deltas so we only yield at safe Markdown block boundaries.
+        Avoid yielding mid-list/table/heading, and never break code fences.
+        """
+        buf = ""
+        code_fence_open = False
+        fence_re = re.compile(r"```")
+
         def should_flush(b: str) -> bool:
-            return (
-                len(b) - last_sent >= buffer_size or
-                b.endswith('\n\n') or
-                b.endswith('.') or
-                b.endswith('!') or
-                b.endswith('?') or
-                '```' in b[-10:]
-            )
-        
+            if not b:
+                return False
+            if code_fence_open:
+                return False  # don't flush mid-code block
+            if b.endswith("\n\n"):
+                return True  # paragraph boundary
+            # Evaluate the last non-empty line
+            parts = b.split("\n")
+            last_line = parts[-1]
+            prev = parts[-2] if last_line == "" and len(parts) >= 2 else last_line
+            return bool(re.match(r"^(\s*[-*] |\s*\d+\.\s|#+\s|\|.*\|)$", prev))
+
         for token in token_iter:
             if not token:
                 continue
-                
-            buffer += token
-            
-            if should_flush(buffer) and processor.is_complete_block(buffer):
-                piece = buffer[last_sent:]
-                if piece.strip():
-                    yield processor.clean_for_streaming(piece)
-                    last_sent = len(buffer)
-        
-        # Send remaining buffer
-        if last_sent < len(buffer):
-            piece = buffer[last_sent:]
-            if piece.strip():
-                yield processor.finalize(piece)
+            buf += token
+
+            if "```" in token:
+                # Toggle code fence state on odd count per chunk
+                if len(fence_re.findall(token)) % 2 == 1:
+                    code_fence_open = not code_fence_open
+
+            if should_flush(buf):
+                yield buf
+                buf = ""
+
+        if buf:
+            yield buf
     
     @staticmethod
     def delta_stream(chunks_iter: Iterator[str]):

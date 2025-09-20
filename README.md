@@ -1,443 +1,649 @@
-# TaxFix Multi-Agent System
+# 🏛️ TaxFix - Multi-Agent German Tax Assistant
 
-A production-grade multi-agent system for personalized German tax advisory services, built with LangGraph, FastAPI, and Streamlit. This system provides intelligent tax calculations, personalized advice, and comprehensive German tax knowledge through specialized AI agents.
+> **Intelligent multi-agent system for German tax assistance powered by LangGraph, Streamlit, and FastAPI**
 
-## 🚀 Quick Start
+<div align="center">
 
-### Prerequisites
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)
+![LangGraph](https://img.shields.io/badge/LangGraph-Latest-purple.svg)
 
-- **Python 3.11+** (Required for LangGraph compatibility)
-- **Redis Server** (For memory management and caching)
-- **Supabase Account** (For database and authentication)
-- **API Keys** (Groq, Google Gemini, LangSmith)
+[Features](#features) • [Architecture](#architecture) • [Setup](#setup) • [Usage](#usage) • [Development](#development)
 
-### Installation
+</div>
 
-```bash
-# 1. Clone the repository
-git clone <repository-url>
-cd taxfix
+---
 
-# 2. Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+## 📋 Table of Contents
 
-# 3. Install dependencies
-pip install -r requirements.txt
+- [Overview](#overview)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Database Setup](#database-setup)
+- [Redis Setup](#redis-setup)
+- [Running the Application](#running-the-application)
+- [API Documentation](#api-documentation)
+- [Development](#development)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
 
-# 4. Setup environment variables
-cp config/env.example .env
-# Edit .env with your API keys and configuration (see Environment Configuration below)
+---
+
+## 🌟 Overview
+
+TaxFix is a sophisticated multi-agent system designed to provide intelligent German tax assistance. It combines the power of multiple specialized AI agents to deliver comprehensive tax advice, expense tracking, and personalized financial guidance.
+
+### Key Highlights
+
+- **Multi-Agent Architecture**: Specialized agents for different tax domains
+- **Real-time Streaming**: Beautiful chat interface with live response streaming
+- **Expense Management**: Track and categorize tax-deductible expenses
+- **Profile-based Advice**: Personalized recommendations based on user profiles
+- **German Tax Expertise**: Specialized knowledge of German tax law and regulations
+
+---
+
+## ✨ Features
+
+### 🤖 Multi-Agent System
+- **Orchestrator Agent**: Routes queries and provides general assistance
+- **Action Agent**: Handles expense management and interactive actions
+- **Profile Agent**: Manages user profiles and personalization
+- **Tax Knowledge Agent**: Provides German tax guidance and calculations
+- **Presenter Agent**: Synthesizes responses from multiple agents
+
+### 💬 Intelligent Chat Interface
+- Real-time streaming responses with markdown support
+- Context-aware conversations with memory
+- Smart agent routing based on user intent
+- Beautiful UI with chat bubbles and proper formatting
+
+### 📊 Comprehensive Dashboard
+- Profile overview with tax status visualization
+- Expense tracking and categorization
+- Tax calculations and projections
+- Interactive charts and analytics
+
+### 🗃️ Data Management
+- Secure user authentication and sessions
+- Expense tracking with automatic categorization
+- Conversation history and context persistence
+- Profile-based personalization
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TB
+    User[👤 User] --> Frontend[🖥️ Streamlit Frontend]
+    Frontend --> Backend[⚡ FastAPI Backend]
+    
+    Backend --> Router[🎯 Agent Router]
+    Router --> Workflow[🔄 LangGraph Workflow]
+    
+    Workflow --> Orchestrator[🎭 Orchestrator Agent]
+    Workflow --> Action[⚡ Action Agent]
+    Workflow --> Profile[👤 Profile Agent]
+    Workflow --> TaxKnowledge[📊 Tax Knowledge Agent]
+    
+    Workflow --> Presenter[🎨 Presenter Agent]
+    
+    Backend --> Database[(🗄️ Supabase)]
+    Backend --> Redis[(🔴 Redis Cache)]
+    Backend --> LLM[🧠 Groq LLM]
+    
+    Action --> ExpenseTools[💰 Expense Tools]
+    Profile --> ProfileNormalizer[📝 Profile Normalizer]
+    TaxKnowledge --> TaxCalculator[🧮 Tax Calculator]
 ```
 
-### Environment Configuration
+### Agent Responsibilities
 
-Create a `.env` file in the root directory with the following variables:
+| Agent | Purpose | Key Functions |
+|-------|---------|---------------|
+| **Orchestrator** | General queries & routing fallback | Greetings, general tax questions |
+| **Action** | Expense management & actions | Add/view/delete expenses, suggestions |
+| **Profile** | User profile management | Update profile, extract personal info |
+| **Tax Knowledge** | German tax expertise | Tax calculations, deductions, regulations |
+| **Presenter** | Response synthesis | Combine agent outputs into cohesive responses |
+
+---
+
+## 🔧 Prerequisites
+
+Before installing TaxFix, ensure you have the following installed:
+
+### System Requirements
+- **Python 3.11+** (Required for modern async features)
+- **Redis Server** (For caching and session management)
+- **Git** (For cloning the repository)
+
+### External Services
+- **Supabase Account** (Database hosting)
+- **Groq API Key** (LLM provider)
+- **LangSmith Account** (Optional: For tracing and monitoring)
+
+---
+
+## 🚀 Installation
+
+### 1. Clone the Repository
 
 ```bash
-# LangSmith Tracing (Optional but recommended for development)
-LANGCHAIN_API_KEY=your_langchain_api_key
+git clone https://github.com/your-username/taxfix.git
+cd taxfix
+```
+
+### 2. Create Python Virtual Environment
+
+```bash
+# Create virtual environment
+python3.11 -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+
+# On Windows:
+# venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+---
+
+## ⚙️ Configuration
+
+### 1. Environment Variables
+
+Copy the example environment file and configure it:
+
+```bash
+cp config/env.example .env
+```
+
+Edit the `.env` file with your actual values:
+
+```bash
+# LLM API Keys
+GROQ_API_KEY=your_groq_api_key_here
+LANGCHAIN_API_KEY=your_langchain_api_key_here
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_PROJECT=TaxFix-MultiAgent
 
-# LLM Providers (At least one required)
-GROQ_API_KEY=your_groq_api_key          # Recommended for fast responses
-GOOGLE_API_KEY=your_google_api_key      # For Gemini model
-
 # Database Configuration
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_KEY=your_supabase_service_key
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_KEY=your_supabase_service_key_here
 
 # Redis Configuration
 REDIS_URL=redis://localhost:6379
-REDIS_PASSWORD=your_redis_password  # If Redis is password protected
+REDIS_PASSWORD=your_redis_password_here
 
-# Application Settings
-DEBUG=true
+# Application Configuration
+APP_NAME=TaxFix Multi-Agent System
+DEBUG=True
 LOG_LEVEL=INFO
+
+# Security
+SECRET_KEY=your_secure_secret_key_here
+JWT_SECRET=your_jwt_secret_here
 ```
 
-### Database Setup
+### 2. API Keys Setup
 
-1. **Create a Supabase project** at [supabase.com](https://supabase.com)
-2. **Run the database schema**:
+#### Groq API Key
+1. Visit [Groq Console](https://console.groq.com/)
+2. Create an account or sign in
+3. Generate an API key
+4. Add it to your `.env` file
+
+#### LangSmith (Optional but Recommended)
+1. Visit [LangSmith](https://smith.langchain.com/)
+2. Create an account
+3. Generate an API key
+4. Add it to your `.env` file
+
+---
+
+## 🗄️ Database Setup
+
+### 1. Supabase Setup
+
+1. **Create Supabase Project**:
+   - Go to [Supabase](https://supabase.com/)
+   - Create a new project
+   - Note your project URL and API keys
+
+2. **Run Database Schema**:
    ```bash
-   # Option 1: Using Supabase CLI
-   supabase db reset
-   
-   # Option 2: Using SQL file directly
-   # Copy the contents of supabase_schema_minimal.sql and run in Supabase SQL editor
+   # Copy the SQL schema to Supabase SQL editor and execute
+   cat supabase_schema_minimal.sql
    ```
 
-3. **Enable Row Level Security (RLS)** on all tables in Supabase dashboard
+3. **Configure Environment**:
+   ```bash
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_KEY=your_anon_key
+   SUPABASE_SERVICE_KEY=your_service_key
+   ```
 
-### Redis Setup
+### Database Schema Overview
 
+The system uses the following core tables:
+- **users**: User authentication and basic info
+- **user_profiles**: Detailed user profiles for tax personalization
+- **conversations**: Chat conversation metadata
+- **messages**: Individual chat messages
+- **tax_documents**: Expense tracking and tax documents
+
+---
+
+## 🔴 Redis Setup
+
+Redis is crucial for session management, caching, and real-time features.
+
+### Local Redis Installation
+
+#### macOS (using Homebrew)
 ```bash
-# Install Redis (macOS with Homebrew)
+# Install Redis
 brew install redis
 
-# Start Redis server
+# Start Redis service
 brew services start redis
 
-# Or start manually
-redis-server
+# Test Redis connection
+redis-cli ping
+# Should return: PONG
+```
+
+#### Ubuntu/Debian
+```bash
+# Install Redis
+sudo apt update
+sudo apt install redis-server
+
+# Start Redis service
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
 
 # Test Redis connection
-redis-cli ping  # Should return "PONG"
+redis-cli ping
+# Should return: PONG
 ```
 
-## 🏃‍♂️ Running the Application
-
-### Option 1: Full Application (Recommended)
-
+#### Docker (Alternative)
 ```bash
-# Start both backend and frontend
-python scripts/start_app.py
+# Run Redis in Docker
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# Test connection
+docker exec -it redis redis-cli ping
 ```
 
-This will start:
-- **Backend API**: FastAPI server on http://localhost:8000
-- **Frontend**: Streamlit app on http://localhost:8501
-- **API Documentation**: http://localhost:8000/docs
+### Redis Configuration
 
-### Option 2: Individual Services
+Update your `.env` file:
+```bash
+REDIS_URL=redis://localhost:6379
+REDIS_PASSWORD=your_password_here  # Optional
+```
+
+### Why Redis is Essential
+
+- **Session Management**: Stores user authentication sessions
+- **Conversation Caching**: Caches conversation history for fast retrieval
+- **Agent State**: Maintains agent state between requests
+- **Rate Limiting**: Implements API rate limiting
+- **Background Tasks**: Queues background processing tasks
+
+---
+
+## 🎯 Running the Application
+
+### Development Mode
+
+#### Method 1: Using Scripts (Recommended)
 
 ```bash
-# Terminal 1: Start backend
-source venv/bin/activate
+# Start backend (FastAPI)
 python scripts/start_backend.py
 
-# Terminal 2: Start frontend
-source venv/bin/activate
+# In another terminal, start frontend (Streamlit)
 python scripts/start_frontend.py
 ```
 
-### Option 3: LangGraph Development Server
+#### Method 2: Manual Start
 
 ```bash
-# For LangGraph workflow development and debugging
-langgraph dev
+# Terminal 1: Start Backend
+cd apps/backend
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# Terminal 2: Start Frontend
+cd apps/frontend
+streamlit run main.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-This provides:
-- Interactive graph visualization
-- Real-time workflow execution
-- Debug tools and breakpoints
-- Performance metrics
-
-## 🏗️ Architecture Overview
-
-### Multi-Agent System
-
-The system uses a sophisticated multi-agent workflow orchestrated by LangGraph:
-
-```
-User Input → Orchestrator → Specialized Agents → Synthesizer → Response
-```
-
-### Core Agents
-
-#### 1. 🎯 **Orchestrator Agent** (`src/agents/orchestrator.py`)
-- **Purpose**: Central coordinator that analyzes user input and routes to appropriate agents
-- **Responsibilities**:
-  - Intent classification (tax calculation, general advice, profile updates)
-  - Agent selection and routing
-  - Workflow orchestration
-  - Response synthesis
-
-#### 2. 👤 **Profile Agent** (`src/agents/profile.py`)
-- **Purpose**: Manages user profile information and updates
-- **Responsibilities**:
-  - User profile creation and updates
-  - Income and filing status management
-  - Dependents and family information
-  - Health insurance type tracking
-
-#### 3. 📚 **Tax Knowledge Agent** (`src/agents/tax_knowledge.py`)
-- **Purpose**: Provides comprehensive German tax information and calculations
-- **Responsibilities**:
-  - German tax law explanations
-  - Tax calculation with health insurance contributions
-  - Deduction identification and recommendations
-  - Social security contribution calculations
-
-#### 4. 🧠 **Memory Agent** (`src/agents/memory.py`)
-- **Purpose**: Manages conversation context and user history
-- **Responsibilities**:
-  - Conversation history storage
-  - Context retrieval and management
-  - User preference learning
-  - Session management
-
-### Core Services
-
-#### 1. **LLM Service** (`src/services/llm.py`)
-- **Providers**: Groq (Llama), Google Gemini
-- **Features**: Model selection, response streaming, error handling
-
-#### 2. **Database Service** (`src/services/database.py`)
-- **Backend**: Supabase PostgreSQL
-- **Features**: User management, conversation storage, profile persistence
-
-#### 3. **Memory Service** (`src/services/memory.py`)
-- **Backend**: Redis
-- **Features**: Session caching, conversation context, temporary storage
-
-#### 4. **Vector Service** (`src/services/vector.py`)
-- **Backend**: ChromaDB with SentenceTransformers
-- **Features**: Tax knowledge retrieval, semantic search, RAG implementation
-
-#### 5. **Tax Knowledge Service** (`src/services/tax_knowledge_service.py`)
-- **Purpose**: German tax calculations and rules
-- **Features**:
-  - Progressive tax rate calculations
-  - Health insurance contribution calculations (statutory/private)
-  - Long-term care insurance calculations
-  - Social security contribution ceilings
-  - Deduction and allowance calculations
-
-### Tools
-
-#### 1. **User Tools** (`src/tools/user_tools.py`)
-- `get_user_profile`: Retrieve user profile information
-- `update_user_profile`: Update user profile data
-- `create_user_profile`: Create new user profile
-
-#### 2. **Conversation Tools** (`src/tools/conversation_tools.py`)
-- `get_conversation_history`: Retrieve conversation history
-- `save_conversation`: Save conversation messages
-- `get_user_conversations`: List user conversations
-
-#### 3. **User Learning Tools** (`src/tools/user_learning_tools.py`)
-- `get_user_learning_preferences`: Retrieve user preferences
-- `update_learning_progress`: Track learning progress
-- `get_recommended_content`: Suggest relevant content
-
-## 📊 Key Features
-
-### Backend Features
-
-#### Multi-Agent Architecture
-- **Specialized Agents**: Each agent has a specific role and expertise
-- **LangGraph Orchestration**: Production-grade workflow management
-- **Agent Communication**: Seamless inter-agent communication
-- **Error Handling**: Robust error handling and recovery
-
-#### German Tax System
-- **Comprehensive Calculations**: Income tax, solidarity surcharge, church tax
-- **Health Insurance**: Statutory and private health insurance contributions
-- **Long-term Care**: Pflegeversicherung with childless surcharges
-- **Social Security**: Contribution assessment ceilings and rates
-- **Deductions**: Werbungskosten, Sonderausgaben, allowances
-
-#### Production Features
-- **LangSmith Tracing**: Complete observability and debugging
-- **Redis Caching**: Fast response times and session management
-- **Supabase Integration**: Secure authentication and data persistence
-- **API Documentation**: Auto-generated OpenAPI documentation
-- **Streaming Responses**: Real-time response streaming
-
-### Frontend Features
-
-#### Authentication & User Management
-- **Secure Login/Registration**: JWT-based authentication with Supabase
-- **Profile Management**: Complete user profile setup and updates
-- **Session Management**: Persistent user sessions
-
-#### Chat Interface
-- **ChatGPT-like Experience**: Beautiful, responsive chat interface
-- **Streaming Responses**: Real-time response streaming with proper formatting
-- **Conversation History**: Persistent conversation storage
-- **Markdown Rendering**: Rich text formatting for tax calculations
-
-#### Tax Dashboard
-- **Interactive Visualizations**: Income, taxes, and savings breakdowns
-- **Real-time Calculations**: Live tax calculations as you type
-- **Deduction Recommendations**: Personalized deduction suggestions
-- **Export Features**: Download tax summaries and reports
-
-## 🔍 Development & Debugging
-
-### LangSmith Integration
-
-With LangSmith tracing enabled, you can:
-
-- **View Complete Workflows**: See every agent execution step-by-step
-- **Debug Agent Interactions**: Step through the workflow with breakpoints
-- **Monitor Performance**: Track execution times and token usage
-- **Trace Errors**: Identify and debug issues in the workflow
-- **Optimize Costs**: Monitor token usage and optimize prompts
-
-Visit [LangSmith Dashboard](https://smith.langchain.com) to view your traces.
-
-### Testing the System
+#### Method 3: Using Makefile
 
 ```bash
-# Test the workflow
-python -c "
-from src.workflow.graph import build_graph
-graph = build_graph()
-print('✅ Graph built successfully')
-"
+# Start both services
+make run
 
-# Test individual services
-python -c "
-from src.services.tax_knowledge_service import TaxKnowledgeService
-service = TaxKnowledgeService()
-result = service.calculate_german_tax(80000, 'single', 0)
-print('✅ Tax calculation working:', result.get('net_income', 'N/A'))
-"
+# Or individually
+make backend
+make frontend
 ```
 
-### API Testing
+### Accessing the Application
 
-```bash
-# Test the API endpoints
-curl -X GET "http://localhost:8000/health"
-curl -X POST "http://localhost:8000/chat/message" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What is my tax liability with €80,000 income?"}'
-```
+- **Frontend (Streamlit)**: http://localhost:8501
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
 
-## 📁 Project Structure
+### First Run Setup
+
+1. **Create User Account**: Register through the frontend interface
+2. **Set Up Profile**: Complete your tax profile for personalized advice
+3. **Test Chat**: Ask a tax question to verify the system is working
+4. **Add Expenses**: Try adding some expenses to test expense tracking
+
+---
+
+## 📚 API Documentation
+
+The FastAPI backend provides comprehensive API documentation:
+
+### Core Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/register` | POST | User registration |
+| `/auth/login` | POST | User authentication |
+| `/auth/me` | GET | Get current user info |
+| `/chat/message` | POST | Send chat message |
+| `/chat/message/stream` | POST | Send chat message (streaming) |
+| `/user/profile` | GET/POST | User profile management |
+| `/user/expenses` | GET | Get user expenses |
+| `/user/dashboard-data` | GET | Dashboard analytics |
+
+### Interactive Documentation
+
+Visit http://localhost:8000/docs for interactive API documentation with:
+- Request/response schemas
+- Try-it-out functionality
+- Authentication examples
+- Error code explanations
+
+---
+
+## 🛠️ Development
+
+### Project Structure
 
 ```
 taxfix/
-├── apps/                          # Application entry points
-│   ├── backend/                   # FastAPI backend
-│   │   └── main.py               # Backend server
-│   └── frontend/                  # Streamlit frontend
-│       └── main.py               # Frontend application
-├── config/                        # Configuration files
-│   ├── env.example               # Environment variables template
-│   └── langgraph.json           # LangGraph configuration
-├── docs/                          # Documentation
-│   ├── README.md                 # This file
-│   ├── PROJECT_STRUCTURE.md      # Detailed project structure
-│   └── FRONTEND_GUIDE.md         # Frontend development guide
-├── scripts/                       # Utility scripts
-│   ├── start_app.py              # Start full application
-│   ├── start_backend.py          # Start backend only
-│   ├── start_frontend.py         # Start frontend only
-│   └── setup_auth_simple.sql     # Database setup
-├── src/                           # Source code
-│   ├── agents/                   # AI agents
-│   │   ├── base.py              # Base agent class
-│   │   ├── orchestrator.py      # Central coordinator
-│   │   ├── profile.py           # User profile management
-│   │   ├── tax_knowledge.py     # Tax information provider
-│   │   └── memory.py            # Memory management
-│   ├── core/                     # Core system components
-│   │   ├── config.py            # Configuration management
-│   │   ├── logging.py           # Logging system
-│   │   ├── state.py             # LangGraph state management
-│   │   └── helpers.py           # Utility functions
-│   ├── data/                     # Static data
-│   │   └── german_tax_data.py   # German tax rules and data
-│   ├── models/                   # Data models
-│   │   ├── user.py              # User and profile models
-│   │   ├── conversation.py      # Conversation models
-│   │   ├── auth.py              # Authentication models
-│   │   └── tax_knowledge.py     # Tax knowledge models
-│   ├── services/                 # Core services
-│   │   ├── llm.py               # LLM integration
-│   │   ├── memory.py            # Redis memory service
-│   │   ├── database.py          # Supabase database service
-│   │   ├── vector.py            # Vector database service
-│   │   ├── auth.py              # Authentication service
-│   │   └── tax_knowledge_service.py # Tax calculation service
-│   ├── tools/                    # Agent tools
-│   │   ├── user_tools.py        # User profile tools
-│   │   ├── conversation_tools.py # Conversation management tools
-│   │   └── user_learning_tools.py # Learning and preferences tools
-│   └── workflow/                 # LangGraph workflow
-│       └── graph.py             # Main workflow orchestration
-├── requirements.txt              # Python dependencies
-├── Makefile                      # Build and development commands
-└── supabase_schema_minimal.sql   # Database schema
+├── 📁 apps/                    # Application layers
+│   ├── 📁 backend/             # FastAPI backend
+│   └── 📁 frontend/            # Streamlit frontend
+├── 📁 src/                     # Core system components
+│   ├── 📁 agents/              # Multi-agent system
+│   ├── 📁 services/            # Business logic services
+│   ├── 📁 tools/               # Agent tools and utilities
+│   ├── 📁 workflow/            # LangGraph workflow
+│   └── 📁 core/                # Core system utilities
+├── 📁 config/                  # Configuration files
+├── 📁 scripts/                 # Utility scripts
+└── 📁 docs/                    # Documentation
 ```
 
-## 🎯 Production Benefits
+### Code Quality
 
-1. **Easy Debugging**: LangSmith traces show exactly what happens in each agent
-2. **Interactive Development**: Visual workflow editing with LangGraph
-3. **Hot Reload**: Changes reflect immediately during development
-4. **Production Ready**: Clean codebase with comprehensive error handling
-5. **Comprehensive Monitoring**: Full observability with LangSmith
-6. **Secure & Scalable**: JWT authentication and modular architecture
-7. **Real-time Streaming**: Fast, responsive user experience
-8. **German Tax Accuracy**: Comprehensive German tax system implementation
+```bash
+# Install development dependencies
+pip install black flake8 pytest
 
-## 🚨 Troubleshooting
+# Format code
+black .
+
+# Lint code
+flake8 .
+
+# Run tests
+pytest
+```
+
+### Adding New Agents
+
+1. **Create Agent Class**:
+   ```python
+   # src/agents/my_agent.py
+   from .base import BaseAgent
+   from ..core.state import AgentType
+   
+   class MyAgent(BaseAgent):
+       def __init__(self, *args, **kwargs):
+           super().__init__(AgentType.MY_AGENT, *args, **kwargs)
+   
+       async def process(self, message, context, session_id, user_profile=None):
+           # Your agent logic here
+           pass
+   ```
+
+2. **Register in Workflow**:
+   ```python
+   # src/workflow/graph.py
+   # Add your agent to the workflow
+   ```
+
+3. **Update Router**:
+   ```python
+   # src/services/agent_router.py
+   # Add routing logic for your agent
+   ```
+
+### Environment-Specific Configuration
+
+#### Development
+```bash
+DEBUG=True
+LOG_LEVEL=DEBUG
+```
+
+#### Production
+```bash
+DEBUG=False
+LOG_LEVEL=INFO
+REDIS_URL=redis://production-redis:6379
+```
+
+---
+
+## 🚀 Deployment
+
+### Production Deployment
+
+#### Using Docker
+
+1. **Build Images**:
+   ```bash
+   # Backend
+   docker build -t taxfix-backend -f apps/backend/Dockerfile .
+   
+   # Frontend
+   docker build -t taxfix-frontend -f apps/frontend/Dockerfile .
+   ```
+
+2. **Run with Docker Compose**:
+   ```bash
+   docker-compose up -d
+   ```
+
+#### Environment Variables for Production
+
+```bash
+# Production environment
+DEBUG=False
+LOG_LEVEL=INFO
+
+# Use production Redis
+REDIS_URL=redis://your-redis-server:6379
+
+# Production Supabase
+SUPABASE_URL=https://your-prod-project.supabase.co
+
+# Secure secrets
+SECRET_KEY=your-very-secure-secret-key
+JWT_SECRET=your-jwt-secret-key
+```
+
+### Scaling Considerations
+
+- **Redis Clustering**: For high availability
+- **Load Balancing**: Multiple backend instances
+- **Database Optimization**: Connection pooling
+- **Caching Strategy**: Redis for frequently accessed data
+
+---
+
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### 1. Redis Connection Error
+#### 1. Redis Connection Errors
 ```bash
 # Check if Redis is running
 redis-cli ping
 
 # Start Redis if not running
 brew services start redis  # macOS
-sudo systemctl start redis  # Linux
+sudo systemctl start redis-server  # Linux
 ```
 
-#### 2. Supabase Connection Error
-- Verify your Supabase URL and keys in `.env`
-- Check if RLS is enabled on all tables
-- Ensure your Supabase project is active
+#### 2. Database Connection Issues
+- Verify Supabase URL and keys in `.env`
+- Check network connectivity to Supabase
+- Ensure database schema is properly created
 
-#### 3. LangSmith Tracing Issues
-- Verify your LangChain API key
-- Check if the project name exists in LangSmith
-- Ensure `LANGCHAIN_TRACING_V2=true` is set
+#### 3. API Key Errors
+- Verify Groq API key is valid and has credits
+- Check LangSmith API key if using tracing
+- Ensure API keys are properly set in `.env`
 
-#### 4. Import Errors
+#### 4. Frontend Not Loading
 ```bash
-# Ensure virtual environment is activated
-source venv/bin/activate
+# Check if backend is running
+curl http://localhost:8000/health
 
-# Reinstall dependencies
-pip install -r requirements.txt
+# Restart frontend
+streamlit run apps/frontend/main.py --server.port 8501
 ```
 
-#### 5. Frontend Streaming Issues
-- Check browser console for JavaScript errors
-- Verify backend is running on port 8000
-- Ensure WebSocket connections are not blocked
+#### 5. Streaming Not Working
+- Ensure browser supports Server-Sent Events (SSE)
+- Check network proxy settings
+- Verify CORS configuration in backend
 
-### Performance Optimization
+### Debug Mode
 
-1. **Redis Configuration**: Increase Redis memory limits for better caching
-2. **Vector Database**: Use GPU acceleration for embeddings if available
-3. **LLM Selection**: Use Groq for faster responses, Gemini for complex reasoning
-4. **Database Indexing**: Add indexes on frequently queried columns
+Enable detailed logging:
+```bash
+DEBUG=True
+LOG_LEVEL=DEBUG
+```
 
-## 📚 Additional Resources
+### Health Checks
 
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [LangSmith Documentation](https://docs.smith.langchain.com/)
-- [Supabase Documentation](https://supabase.com/docs)
-- [Redis Documentation](https://redis.io/docs/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Streamlit Documentation](https://docs.streamlit.io/)
+```bash
+# Backend health
+curl http://localhost:8000/health
 
-## 🤝 Contributing
+# Redis connectivity
+redis-cli ping
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Database connectivity
+# Check Supabase dashboard
+```
 
 ---
 
-**Built with ❤️ using LangGraph, LangChain, FastAPI, Streamlit, and modern Python technologies.**
+## 🤝 Contributing
 
-**TaxFix - Making German tax calculations simple and intelligent.**
+We welcome contributions! Please follow these guidelines:
+
+### Development Workflow
+
+1. **Fork the Repository**
+2. **Create Feature Branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. **Make Changes** and test thoroughly
+4. **Commit Changes**:
+   ```bash
+   git commit -m "feat: add your feature description"
+   ```
+5. **Push and Create PR**
+
+### Commit Convention
+
+We use conventional commits:
+- `feat:` New features
+- `fix:` Bug fixes
+- `docs:` Documentation updates
+- `refactor:` Code refactoring
+- `test:` Adding tests
+
+### Code Standards
+
+- Follow PEP 8 for Python code
+- Use type hints where possible
+- Add docstrings for new functions
+- Include tests for new features
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **LangGraph**: For the multi-agent framework
+- **Streamlit**: For the beautiful frontend framework
+- **FastAPI**: For the high-performance backend
+- **Supabase**: For the database and authentication
+- **Groq**: For fast LLM inference
+
+---
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-username/taxfix/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-username/taxfix/discussions)
+- **Email**: support@taxfix.example
+
+---
+
+<div align="center">
+
+**Built with ❤️ for German tax assistance**
+
+[⬆ Back to top](#-taxfix---multi-agent-german-tax-assistant)
+
+</div>

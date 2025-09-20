@@ -26,7 +26,8 @@ class PresenterAgent(BaseAgent):
         return (
             "You are a Presenter Agent for a German tax assistance platform. "
             "Your job is to synthesize multiple specialized agent outputs into ONE cohesive, "
-            "helpful response for the user. Always respond in English with German tax terms "
+            "helpful response for the user. CRITICAL: Use ONLY the exact data provided by agents - "
+            "never hallucinate, estimate, or create fake details. Always respond in English with German tax terms "
             "explained briefly. Never mention 'agents' or 'systems' - speak as one unified assistant."
         )
 
@@ -161,13 +162,15 @@ class PresenterAgent(BaseAgent):
         prompt = f"""
 You are synthesizing multiple specialized responses into ONE cohesive answer for a German tax assistance user.
 
+**IMPORTANT**: You MUST use only the information provided by the agents below. DO NOT create, estimate, or hallucinate any data, numbers, or details not explicitly provided.
+
 **USER'S ORIGINAL QUESTION:**
 "{user_message}"
 
 **RECENT CONVERSATION:**
 {history_text if history_text else "This is the start of the conversation."}
 
-**SPECIALIZED AGENT OUTPUTS:**
+**SPECIALIZED AGENT OUTPUTS (USE EXACT DATA FROM HERE):**
 {outputs_text}
 
 **EXPENSE SUGGESTION DETECTED:** {"YES - The Action Agent suggested adding an expense to track!" if has_expense_suggestion else "No expense suggestions detected."}
@@ -175,8 +178,8 @@ You are synthesizing multiple specialized responses into ONE cohesive answer for
 **YOUR TASK:**
 Create a single, well-structured response that:
 1. Directly answers the user's question
-2. Integrates relevant information from ALL agents intelligently
-3. Removes redundancy and contradictions
+2. **PRESERVE EXACT DATA**: Use the exact expenses, amounts, dates, and details provided by agents - DO NOT modify, estimate, or create new details
+3. Combines information from multiple agents without contradictions
 4. Uses a natural, conversational tone
 5. Prioritizes the most relevant information first
 6. If expenses are mentioned by the Action Agent, ensure tax advice accounts for them
@@ -184,8 +187,9 @@ Create a single, well-structured response that:
 
 **CRITICAL GUIDELINES:**
 - Don't mention "agents", "systems", or "outputs" - speak as one unified tax assistant
-- If multiple agents provide similar info, combine it seamlessly
-- If the Action Agent found expenses, integrate them into tax calculations/advice
+- **NEVER HALLUCINATE DATA**: If Action Agent says "no expenses", don't create fake expenses. If it provides specific expenses, use the EXACT details provided
+- **PRESERVE EXACT NUMBERS**: Use the exact amounts, dates, categories provided - don't round, estimate, or modify them
+- If the Action Agent found expenses, use their exact data in tax calculations/advice
 - **EXPENSE SUGGESTIONS**: If an expense suggestion was detected, add a section like:
   "Would you like me to add this German course to your expense tracking? Please provide:
   - Amount: €[ask for amount]

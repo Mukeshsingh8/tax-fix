@@ -2,8 +2,15 @@
 
 import streamlit as st
 from typing import Dict, Any, List
-from ..services.api_client import APIClient
-from ..auth.auth_manager import AuthManager
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from services.api_client import APIClient
+from auth.auth_manager import AuthManager
 
 
 def render_profile_page(api_client: APIClient, auth_manager: AuthManager):

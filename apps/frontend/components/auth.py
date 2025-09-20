@@ -1,8 +1,15 @@
 """Authentication components for TaxFix Frontend."""
 
 import streamlit as st
-from ..auth.auth_manager import AuthManager
-from ..utils.helpers import ValidationHelper
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from auth.auth_manager import AuthManager
+from utils.helpers import ValidationHelper
 
 
 def render_auth_page(auth_manager: AuthManager):

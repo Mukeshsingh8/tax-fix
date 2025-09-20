@@ -3,9 +3,16 @@
 import streamlit as st
 from datetime import datetime
 from typing import Dict, List
-from ..services.api_client import APIClient
-from ..auth.auth_manager import AuthManager
-from ..utils.helpers import SessionHelper, StreamingHelper
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from services.api_client import APIClient
+from auth.auth_manager import AuthManager
+from utils.helpers import SessionHelper, StreamingHelper
 
 
 def render_chat_interface(api_client: APIClient, auth_manager: AuthManager):
@@ -45,16 +52,14 @@ def render_conversation_display():
         """, unsafe_allow_html=True)
         return
     
-    # Display messages
+    # Display messages using Streamlit's built-in chat interface
     for i, message in enumerate(st.session_state.conversation_history):
         role = message.get("role", "user")
         content = message.get("content", "")
-        timestamp = message.get("timestamp", datetime.now())
         
-        if role == "user":
-            render_user_message(content, timestamp)
-        else:
-            render_assistant_message(content, timestamp)
+        # Use Streamlit's native chat message display
+        with st.chat_message(role):
+            st.markdown(content)
 
 
 def render_user_message(content: str, timestamp):
@@ -145,25 +150,31 @@ def handle_message_send(api_client: APIClient, auth_manager: AuthManager, messag
         # Send message to API
         token = auth_manager.get_token()
         session_id = st.session_state.current_session_id
+        if not session_id:
+            user_id = st.session_state.user.get("id") or st.session_state.user.get("user_id")
+            session_id = SessionHelper.generate_session_id(user_id)
+            st.session_state.current_session_id = session_id
         
-        # Use streaming response
-        response_placeholder = st.empty()
-        response_content = ""
-        
+        # Use streaming response with proper Streamlit chat interface
         try:
-            for chunk in api_client.send_message_streaming(message, session_id, token):
-                if chunk and chunk.strip():
-                    response_content += chunk
-                    # Update the display with accumulated content
-                    with response_placeholder.container():
-                        render_assistant_message(response_content, datetime.now())
+            # Stream into assistant bubble for live view
+            assistant_box = st.chat_message("assistant")
+            full_response = assistant_box.write_stream(
+                StreamingHelper.block_stream(
+                    api_client.send_message_streaming(message, session_id, token)
+                )
+            )
+            response_content = full_response if isinstance(full_response, str) else ""
         except Exception as stream_error:
             # Fallback to non-streaming
             response = api_client.send_message(message, session_id, token)
             if response.get("success"):
                 response_content = response.get("content", "I encountered an error processing your request.")
+                # Render as Markdown once
+                st.chat_message("assistant").markdown(response_content)
             else:
                 response_content = f"Error: {response.get('error', 'Unknown error occurred')}"
+                st.chat_message("assistant").markdown(response_content)
         
         # Add assistant response to history
         assistant_message = {

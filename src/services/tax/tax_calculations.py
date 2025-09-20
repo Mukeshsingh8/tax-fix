@@ -30,7 +30,7 @@ class TaxCalculator:
                 return None
 
             if not user_profile or not user_profile.annual_income:
-                logger.info("Calculation requested but missing profile/income")
+                self.logger.info("Calculation requested but missing profile/income")
                 return None
 
             # Determine calculation type
@@ -46,7 +46,7 @@ class TaxCalculator:
                 return await self._calculate_comprehensive(user_profile)
 
         except Exception as e:
-            logger.error(f"Tax calculation error: {e}")
+            self.logger.error(f"Tax calculation error: {e}")
             return None
 
     def _is_calculation_request(self, text: str) -> bool:
@@ -99,7 +99,7 @@ class TaxCalculator:
                 "effective_tax_rate": (tax_liability / gross_income * 100) if gross_income > 0 else 0,
             }
         except Exception as e:
-            logger.error(f"Net income calculation error: {e}")
+            self.logger.error(f"Net income calculation error: {e}")
             return {}
 
     async def _calculate_tax_liability(self, user_profile: DBUserProfile) -> Dict[str, Any]:
@@ -118,7 +118,7 @@ class TaxCalculator:
                 "marginal_tax_rate": self._get_marginal_rate(taxable_income),
             }
         except Exception as e:
-            logger.error(f"Tax liability calculation error: {e}")
+            self.logger.error(f"Tax liability calculation error: {e}")
             return {}
 
     async def _calculate_deduction_savings(self, user_profile: DBUserProfile, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -141,7 +141,7 @@ class TaxCalculator:
                 "estimated_tax_savings": tax_savings,
             }
         except Exception as e:
-            logger.error(f"Deduction savings calculation error: {e}")
+            self.logger.error(f"Deduction savings calculation error: {e}")
             return {}
 
     async def _calculate_comprehensive(self, user_profile: DBUserProfile) -> Dict[str, Any]:
@@ -156,7 +156,7 @@ class TaxCalculator:
                 "marginal_tax_rate": tax_calc.get("marginal_tax_rate", 0),
             }
         except Exception as e:
-            logger.error(f"Comprehensive calculation error: {e}")
+            self.logger.error(f"Comprehensive calculation error: {e}")
             return {}
 
     def _calculate_progressive_tax(self, taxable_income: float) -> float:

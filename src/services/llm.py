@@ -13,10 +13,7 @@ from langchain.callbacks.base import BaseCallbackHandler
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from ..core.config import get_settings
-from ..core.logging import get_logger
-
-logger = get_logger(__name__)
+from .base_service import BaseService, LLMMixin
 
 
 # ---------------------------------------------------------------------
@@ -45,7 +42,7 @@ class StreamingCallbackHandler(BaseCallbackHandler):
 # ---------------------------------------------------------------------
 # LLM Service
 # ---------------------------------------------------------------------
-class LLMService:
+class LLMService(BaseService, LLMMixin):
     """
     Unified LLM service with:
     - Groq + Gemini backends
@@ -55,15 +52,19 @@ class LLMService:
     """
 
     def __init__(self):
-        self.settings = get_settings()
+        super().__init__("LLMService")
         self.groq_client: Optional[ChatGroq] = None
         self.gemini_client: Optional[ChatGoogleGenerativeAI] = None
         self._initialize_clients()
-        logger.info("LLM service initialized")
 
     # ---------- client bootstrap ----------
     def _initialize_clients(self) -> None:
+        self.log_operation_start("initialize_clients")
         try:
+            # Validate required settings first
+            if not self.settings.groq_api_key and not self.settings.google_api_key:
+                raise ValueError("At least one LLM API key (Groq or Google) is required")
+
             # Groq
             if self.settings.groq_api_key:
                 self.groq_client = ChatGroq(
@@ -72,8 +73,9 @@ class LLMService:
                     temperature=self.settings.temperature,
                     max_tokens=self.settings.max_tokens,
                 )
+                self.logger.info("Groq client initialized")
             else:
-                logger.warning("GROQ_API_KEY not provided. Groq client not initialized.")
+                self.logger.warning("GROQ_API_KEY not provided. Groq client not initialized.")
 
             # Gemini (optional)
             if self.settings.google_api_key:
@@ -83,12 +85,13 @@ class LLMService:
                     temperature=self.settings.temperature,
                     max_output_tokens=self.settings.max_tokens,
                 )
+                self.logger.info("Gemini client initialized")
             else:
-                logger.warning("GOOGLE_API_KEY not provided. Gemini client not initialized.")
+                self.logger.warning("GOOGLE_API_KEY not provided. Gemini client not initialized.")
 
-            logger.info("LLM clients initialized successfully")
+            self.log_operation_success("initialize_clients", f"groq={self.groq_client is not None}, gemini={self.gemini_client is not None}")
         except Exception as e:
-            logger.error(f"Error initializing LLM clients: {e}")
+            self.log_operation_error("initialize_clients", e)
             raise
 
     # ---------- utilities ----------
@@ -155,7 +158,7 @@ class LLMService:
                 return await fn(provider)
             except Exception as e:
                 last_err = e
-                logger.warning(f"Provider {provider} failed: {e}")
+                self.logger.warning(f"Provider {provider} failed: {e}")
         if last_err:
             raise last_err
         raise RuntimeError("No provider available")
@@ -216,7 +219,7 @@ class LLMService:
                         if hasattr(chunk, "content") and chunk.content:
                             yield chunk.content
                 except Exception as e:
-                    logger.error(f"Error streaming from {pvdr}: {e}")
+                    self.logger.error(f"Error streaming from {pvdr}: {e}")
                     # surface error as a stream token (optional)
                     yield f"\n[stream error: {pvdr}: {e}]\n"
             return gen()
@@ -250,7 +253,7 @@ class LLMService:
                     if attempt > max(1, retries):
                         raise
                     backoff = min(2 ** (attempt - 1), 4)
-                    logger.warning(f"{pvdr} attempt {attempt} failed: {e}; retrying in {backoff}s")
+                    self.logger.warning(f"{pvdr} attempt {attempt} failed: {e}; retrying in {backoff}s")
                     await asyncio.sleep(backoff)
 
         try_order = [provider]
@@ -297,7 +300,7 @@ class LLMService:
                 obj = self._extract_first_json(cleaned)
                 return json.loads(obj)
             except Exception as e:
-                logger.error(f"Failed to parse JSON from model output. Raw:\n{text}")
+                self.logger.error(f"Failed to parse JSON from model output. Raw:\n{text}")
                 raise ValueError(f"Invalid JSON from LLM: {e}") from e
 
     # -----------------------------------------------------------------
@@ -314,7 +317,7 @@ class LLMService:
                 if hasattr(chunk, "content") and chunk.content:
                     yield chunk.content
         except Exception as e:
-            logger.error(f"Error streaming response: {e}")
+            self.logger.error(f"Error streaming response: {e}")
             yield f"[stream error: {e}]"
 
     # -----------------------------------------------------------------
@@ -372,7 +375,7 @@ class LLMService:
                 "model_used": model,
             }
         except Exception as e:
-            logger.error(f"Error analyzing text: {e}")
+            self.logger.error(f"Error analyzing text: {e}")
             return {
                 "analysis_type": analysis_type,
                 "text": text,
@@ -407,7 +410,7 @@ text: {text}
                 data.setdefault(key, [])
             return data
         except Exception as e:
-            logger.error(f"Error extracting entities: {e}")
+            self.logger.error(f"Error extracting entities: {e}")
             return {"error": str(e)}
 
     async def generate_suggestions(
@@ -434,7 +437,7 @@ text: {text}
                     suggestions.append({"text": line, "type": suggestion_type, "confidence": 0.8})
             return suggestions
         except Exception as e:
-            logger.error(f"Error generating suggestions: {e}")
+            self.logger.error(f"Error generating suggestions: {e}")
             return []
 
     async def validate_response(
@@ -472,7 +475,7 @@ Context: {json.dumps(context, ensure_ascii=False)}
             data.setdefault("suggestions", [])
             return data
         except Exception as e:
-            logger.error(f"Error validating response: {e}")
+            self.logger.error(f"Error validating response: {e}")
             return {
                 "accuracy_score": 0.0,
                 "helpfulness_score": 0.0,

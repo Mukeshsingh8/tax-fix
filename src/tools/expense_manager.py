@@ -241,7 +241,7 @@ class ExpenseManager:
             total_amount = sum(exp.get("amount", 0) for exp in expenses)
             expense_lines = []
             
-            for exp in expenses[:5]:  # Show top 5
+            for exp in expenses:  # Show all expenses
                 amount_str = format_currency(exp.get("amount", 0))
                 date = exp.get("date", "")
                 desc = exp.get("description", "Unknown")
@@ -254,8 +254,8 @@ class ExpenseManager:
             
             content = f"**Your Recent Expenses:**\n{expenses_text}\n\n**Total: {total_str}**"
             
-            if len(expenses) > 5:
-                content += f"\n\n(Showing 5 of {len(expenses)} expenses)"
+            if len(all_expenses) > len(expenses):
+                content += f"\n\n(Showing {len(expenses)} of {len(all_expenses)} expenses)"
 
             return await self.agent.create_response(
                 content=content,

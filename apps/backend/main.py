@@ -255,7 +255,7 @@ async def register_user(
             )
             
     except Exception as e:
-        logger.error(f"Registration error: {e}")
+        get_logger(__name__).error(f"Registration error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration failed: {str(e)}"
@@ -285,7 +285,7 @@ async def login_user(
             )
             
     except Exception as e:
-        logger.error(f"Login error: {e}")
+        get_logger(__name__).error(f"Login error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login failed: {str(e)}"
@@ -302,7 +302,7 @@ async def logout_user(
         result = await auth_svc.logout_user(token)
         return {"success": result.success, "message": result.message}
     except Exception as e:
-        logger.error(f"Logout error: {e}")
+        get_logger(__name__).error(f"Logout error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Logout failed: {str(e)}"
@@ -325,7 +325,7 @@ async def get_current_user(
                 detail="Invalid token"
             )
     except Exception as e:
-        logger.error(f"Get user error: {e}")
+        get_logger(__name__).error(f"Get user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get user: {str(e)}"
@@ -392,7 +392,8 @@ async def send_message(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Chat error: {e}")
+        from src.core.logging import get_logger
+        get_logger(__name__).error(f"Chat error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing message: {str(e)}"
@@ -513,7 +514,8 @@ async def send_message_stream(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Streaming chat error: {e}")
+        from src.core.logging import get_logger
+        get_logger(__name__).error(f"Streaming chat error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing streaming message: {str(e)}"
@@ -554,7 +556,7 @@ async def get_user_profile(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get profile error: {e}")
+        get_logger(__name__).error(f"Get profile error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting profile: {str(e)}"
@@ -608,7 +610,8 @@ async def get_user_conversations(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get conversations error: {e}")
+        from src.core.logging import get_logger
+        get_logger(__name__).error(f"Get conversations error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting conversations: {str(e)}"
@@ -668,7 +671,7 @@ async def get_conversation_messages(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get conversation messages error: {e}")
+        get_logger(__name__).error(f"Get conversation messages error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting conversation messages: {str(e)}"
@@ -724,7 +727,7 @@ async def delete_conversation(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Delete conversation error: {e}")
+        get_logger(__name__).error(f"Delete conversation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting conversation: {str(e)}"
@@ -777,7 +780,7 @@ async def create_user_profile(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Create profile error: {e}")
+        get_logger(__name__).error(f"Create profile error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating profile: {str(e)}"
@@ -824,7 +827,7 @@ async def get_user_learning(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get user learning error: {e}")
+        get_logger(__name__).error(f"Get user learning error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting user learning: {str(e)}"
@@ -872,7 +875,7 @@ async def get_user_expenses(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get user expenses error: {e}")
+        get_logger(__name__).error(f"Get user expenses error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting user expenses: {str(e)}"
@@ -973,7 +976,7 @@ async def get_user_dashboard_data(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get dashboard data error: {e}")
+        get_logger(__name__).error(f"Get dashboard data error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting dashboard data: {str(e)}"

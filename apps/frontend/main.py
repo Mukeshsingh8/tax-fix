@@ -3,6 +3,13 @@ Refactored TaxFix Frontend - Production-Grade Modular Architecture
 """
 
 import streamlit as st
+import sys
+import os
+
+# Add current directory to Python path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
+
 from config import APP_CONFIG
 from utils import apply_global_styles
 from services import APIClient

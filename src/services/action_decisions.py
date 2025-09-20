@@ -46,11 +46,11 @@ class ActionDecisionMaker:
                 # Validate and enhance the response
                 return self._validate_and_enhance_decision(response, message)
             else:
-                logger.warning("LLM returned invalid decision, using fallback")
+                self.logger.warning("LLM returned invalid decision, using fallback")
                 return self._fallback_decision(message)
 
         except Exception as e:
-            logger.error(f"Decision making error: {e}")
+            self.logger.error(f"Decision making error: {e}")
             return self._fallback_decision(message)
 
     def _build_decision_prompt(
@@ -148,7 +148,7 @@ Only extract expense_data if relevant to the action.
             }
 
         except Exception as e:
-            logger.error(f"Decision validation error: {e}")
+            self.logger.error(f"Decision validation error: {e}")
             return self._fallback_decision(message)
 
     def _validate_expense_data(self, expense_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -179,7 +179,7 @@ Only extract expense_data if relevant to the action.
             return cleaned
 
         except Exception as e:
-            logger.error(f"Expense data validation error: {e}")
+            self.logger.error(f"Expense data validation error: {e}")
             from datetime import datetime
             return {
                 "description": "Expense",
@@ -237,7 +237,7 @@ Only extract expense_data if relevant to the action.
             }
 
         except Exception as e:
-            logger.error(f"Fallback decision error: {e}")
+            self.logger.error(f"Fallback decision error: {e}")
             return {
                 "action": "general_guidance",
                 "expense_data": None,
@@ -265,7 +265,7 @@ Only extract expense_data if relevant to the action.
             )
 
         except Exception as e:
-            logger.error(f"Guidance response error: {e}")
+            self.logger.error(f"Guidance response error: {e}")
             return "I can help you track expenses and manage your tax deductions. What would you like to do?"
 
     def get_suggested_actions(self, action_type: str) -> List[Dict[str, str]]:

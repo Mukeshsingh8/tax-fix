@@ -11,23 +11,24 @@ from ..models.auth import LoginRequest, RegisterRequest, UserSession, AuthRespon
 from ..models.user import User
 from ..services.database import DatabaseService
 from ..services.memory import MemoryService
-from ..core.config import get_settings
-from ..core.logging import get_logger
-
-logger = get_logger(__name__)
+from .base_service import BaseService
 
 
-class AuthService:
+class AuthService(BaseService):
     """Authentication service for user management (register/login/logout/token)."""
 
     def __init__(self, database_service: DatabaseService, memory_service: MemoryService):
+        super().__init__("AuthService")
         self.database = database_service
         self.memory_service = memory_service
-        self.settings = get_settings()
         self.secret_key = self.settings.jwt_secret
         self.algorithm = "HS256"
         self.token_expiry = timedelta(hours=24)
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
+        # Validate JWT secret is available
+        if not self.secret_key:
+            raise ValueError("JWT secret key is required but not configured")
 
     # ---- Passwords ----------------------------------------------------------
 
@@ -61,13 +62,13 @@ class AuthService:
         try:
             return jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
         except jwt.ExpiredSignatureError:
-            logger.warning("Token has expired")
+            self.logger.warning("Token has expired")
             return None
         except jwt.InvalidTokenError:
-            logger.warning("Invalid token")
+            self.logger.warning("Invalid token")
             return None
         except Exception as e:
-            logger.error(f"Token decode error: {e}")
+            self.logger.error(f"Token decode error: {e}")
             return None
 
     # ---- Redis session helpers ---------------------------------------------
@@ -89,9 +90,9 @@ class AuthService:
                 data,
                 ttl=self.settings.short_term_memory_ttl,
             )
-            logger.info(f"Stored user session in Redis: {session.user_id}")
+            self.logger.info(f"Stored user session in Redis: {session.user_id}")
         except Exception as e:
-            logger.error(f"Error storing user session: {e}")
+            self.logger.error(f"Error storing user session: {e}")
 
     async def _get_user_session(self, user_id: str) -> Optional[UserSession]:
         try:
@@ -109,7 +110,7 @@ class AuthService:
                 is_active=str(raw.get("is_active", "")).lower() == "true",
             )
         except Exception as e:
-            logger.error(f"Error getting user session: {e}")
+            self.logger.error(f"Error getting user session: {e}")
             return None
 
     async def _invalidate_user_session(self, user_id: str) -> None:
@@ -117,9 +118,9 @@ class AuthService:
             await self.memory_service.delete_user_session(user_id)
             # Also drop temp copy if used
             await self.memory_service.store_temp_data(f"user_session:{user_id}", {}, ttl=1)
-            logger.info(f"Invalidated user session: {user_id}")
+            self.logger.info(f"Invalidated user session: {user_id}")
         except Exception as e:
-            logger.error(f"Error invalidating user session: {e}")
+            self.logger.error(f"Error invalidating user session: {e}")
 
     # ---- Public API ---------------------------------------------------------
 
@@ -153,10 +154,10 @@ class AuthService:
             # Cache session for fast lookup
             await self._store_user_session(session)
 
-            logger.info(f"User registered: {created.email}")
+            self.logger.info(f"User registered: {created.email}")
             return AuthResponse(success=True, message="User registered successfully", user=session, token=token)
         except Exception as e:
-            logger.error(f"Error registering user: {e}")
+            self.logger.error(f"Error registering user: {e}")
             return AuthResponse(success=False, message=f"Registration failed: {str(e)}")
 
     async def login_user(self, request: LoginRequest) -> AuthResponse:
@@ -177,10 +178,10 @@ class AuthService:
 
             await self._store_user_session(session)
 
-            logger.info(f"User logged in: {user.email}")
+            self.logger.info(f"User logged in: {user.email}")
             return AuthResponse(success=True, message="Login successful", user=session, token=token)
         except Exception as e:
-            logger.error(f"Error logging in user: {e}")
+            self.logger.error(f"Error logging in user: {e}")
             return AuthResponse(success=False, message=f"Login failed: {str(e)}")
 
     async def verify_token(self, token: str) -> Optional[UserSession]:
@@ -202,7 +203,7 @@ class AuthService:
                 role=UserRole.USER,
             )
         except Exception as e:
-            logger.error(f"Error verifying token: {e}")
+            self.logger.error(f"Error verifying token: {e}")
             return None
 
     async def logout_user(self, token: str) -> AuthResponse:
@@ -212,10 +213,10 @@ class AuthService:
             if payload and payload.get("user_id"):
                 await self._invalidate_user_session(payload["user_id"])
             else:
-                logger.warning("Logout called with invalid/expired token")
+                self.logger.warning("Logout called with invalid/expired token")
             return AuthResponse(success=True, message="Logout successful")
         except Exception as e:
-            logger.error(f"Error logging out user: {e}")
+            self.logger.error(f"Error logging out user: {e}")
             return AuthResponse(success=False, message=f"Logout failed: {str(e)}")
 
     async def get_current_user(self, token: str) -> Optional[UserSession]:
@@ -249,5 +250,5 @@ class AuthService:
             await self._store_user_session(session)
             return session
         except Exception as e:
-            logger.error(f"Error getting current user: {e}")
+            self.logger.error(f"Error getting current user: {e}")
             return None

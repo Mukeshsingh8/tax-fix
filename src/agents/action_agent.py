@@ -90,7 +90,10 @@ Focus on action, not long explanations.
                 return await self.expense_manager.delete_expense(expense_id, user_id, context)
             
             elif action == "read_expenses":
-                return await self.expense_manager.read_expenses(user_id, context)
+                # Check if user wants all expenses
+                message_text = (message.content or "").lower()
+                limit = 100 if any(word in message_text for word in ["all", "complete", "entire", "every"]) else 10
+                return await self.expense_manager.read_expenses(user_id, context, limit)
             
             else:  # general_guidance
                 return await self._handle_general_guidance(message, context, decision.get("reasoning", ""))

@@ -5,10 +5,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from typing import Dict, Any
-from ..services.api_client import APIClient
-from ..auth.auth_manager import AuthManager
-from ..utils.helpers import DataFormatter
-from ..config import DEFAULTS
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from services.api_client import APIClient
+from auth.auth_manager import AuthManager
+from utils.helpers import DataFormatter
+from config import DEFAULTS
 
 
 def render_dashboard(api_client: APIClient, auth_manager: AuthManager):
