@@ -1,0 +1,1 @@
+"""TaxFix Frontend Application."""

@@ -1,0 +1,7 @@
+{
+  "dependencies": [".."],
+  "graphs": {
+    "taxfix-workflow": "src.workflow.graph:build_graph"
+  },
+  "env": ".env"
+}

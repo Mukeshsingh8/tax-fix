@@ -1,0 +1,38 @@
+# Core LangGraph Framework
+langchain-core
+langgraph
+langgraph-checkpoint
+langgraph-prebuilt
+langgraph-sdk
+langsmith
+
+# LLM Providers
+langchain-groq
+langchain-google-genai
+
+# Database & Storage
+supabase
+redis
+
+# Vector & Embeddings
+chromadb
+sentence-transformers
+
+# API & Frontend
+fastapi
+uvicorn
+streamlit
+streamlit-chat
+streamlit-option-menu
+streamlit-aggrid
+
+# Utilities
+python-dotenv
+pydantic
+pydantic-settings
+httpx
+plotly
+pandas
+
+# Development
+pytest
