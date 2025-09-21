@@ -271,12 +271,20 @@ def create_database_schema():
     """Provide instructions for database schema setup."""
     print_step(8, "Database schema setup")
     
-    if os.path.exists("supabase_schema_minimal.sql"):
+    schema_files = ["supabase_schema.sql", "scripts/supabase_schema.sql"]
+    schema_file = None
+    
+    for file_path in schema_files:
+        if os.path.exists(file_path):
+            schema_file = file_path
+            break
+    
+    if schema_file:
         print_success("Database schema file found")
         print_colored("\nTo set up your database:", Colors.CYAN)
         print_colored("1. Go to your Supabase project dashboard", Colors.CYAN)
         print_colored("2. Open the SQL Editor", Colors.CYAN)
-        print_colored("3. Copy and run the contents of supabase_schema_minimal.sql", Colors.CYAN)
+        print_colored(f"3. Copy and run the contents of {schema_file}", Colors.CYAN)
         print_colored("4. This will create all necessary tables", Colors.CYAN)
         return True
     else:
