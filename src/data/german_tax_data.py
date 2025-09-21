@@ -1,4 +1,5 @@
 """German tax knowledge data for the system (2024-focused, enriched)."""
+# Run LLM to get the data - then enrich it with the data from the LLM.
 
 from typing import List
 from datetime import datetime

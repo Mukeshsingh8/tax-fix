@@ -1,4 +1,9 @@
-"""User-related routes."""
+"""
+User-related routes for TaxFix
+
+handles user profiles, conversations, learning insights, expenses, and dashboard data.
+pretty comprehensive user management - works fine.
+"""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.core.logging import get_logger
@@ -17,9 +22,14 @@ async def get_user_profile(
     current_user: UserSession = Depends(get_current_user),
     db_svc: DatabaseService = Depends(get_database_service)
 ):
-    """Get user profile."""
+    """
+    Get user profile - basic profile retrieval.
+    
+    this looks fine for now, will pop in here later to add profile caching
+    and maybe profile validation - Works now.
+    """
     try:
-        # Get user profile
+        # Get user profile - simple database query
         profile = await db_svc.get_user_profile(current_user.user_id)
         if profile:
             return {"success": True, "profile": profile.dict()}
@@ -44,17 +54,17 @@ async def create_user_profile(
 ):
     """Create or update user profile."""
     try:
-        # Create profile data
+        # Create profile data - prepare for database
         profile_dict = profile_data.dict()
         profile_dict["user_id"] = current_user.user_id
         
-        # Ensure all required fields are present with defaults
+        # Ensure all required fields are present with defaults - data cleanup
         profile_dict.setdefault("frequently_asked_questions", [])
         profile_dict.setdefault("common_expenses", [])
         profile_dict.setdefault("conversation_count", 0)
         profile_dict.setdefault("last_interaction", None)
         
-        # Create or update profile in database
+        # Create or update profile in database - upsert operation
         profile = await db_svc.create_or_update_user_profile(profile_dict)
         
         if profile:
@@ -79,10 +89,10 @@ async def get_user_conversations(
 ):
     """Get user conversation history."""
     try:
-        # Get conversations
+        # Get conversations - basic database query
         conversations = await db_svc.get_user_conversations(current_user.user_id)
         
-        # Get message count for each conversation
+        # Get message count for each conversation - add metadata
         conversations_with_counts = []
         for conv in conversations:
             messages = await db_svc.get_conversation_messages(conv.id)
@@ -144,14 +154,19 @@ async def get_user_expenses(
     current_user: UserSession = Depends(get_current_user),
     db_svc: DatabaseService = Depends(get_database_service)
 ):
-    """Get user expenses."""
+    """
+    Get user expenses - expense tracking and management.
+    
+    this looks fine for now, will pop in here later to add expense categorization
+    and maybe expense analytics - works but could be better.
+    """
     try:
-        # Get user expenses
+        # Get user expenses - expense data retrieval
         from src.tools.expense_tools import ExpenseTools
         expense_tools = ExpenseTools(db_svc)
         expenses = await expense_tools.read_expenses(current_user.user_id)
         
-        # Get expense summary
+        # Get expense summary - aggregated data
         summary = await expense_tools.get_expense_summary(current_user.user_id)
         
         return {
@@ -175,31 +190,36 @@ async def get_user_dashboard_data(
     current_user: UserSession = Depends(get_current_user),
     db_svc: DatabaseService = Depends(get_database_service)
 ):
-    """Get comprehensive dashboard data for user."""
+    """
+    Get comprehensive dashboard data for user - the big one.
+    
+    this looks fine for now, will pop in here later to add dashboard caching
+    and maybe real-time updates - works.
+    """
     try:
-        # Get all user data for dashboard
+        # Get all user data for dashboard - comprehensive data aggregation
         from src.tools.expense_tools import ExpenseTools
         
-        # User profile
+        # User profile - basic user info
         profile = await db_svc.get_user_profile(current_user.user_id)
         
-        # Expenses
+        # Expenses - expense tracking data
         expense_tools = ExpenseTools(db_svc)
         expenses = await expense_tools.read_expenses(current_user.user_id)
         expense_summary = await expense_tools.get_expense_summary(current_user.user_id)
         
-        # Tax documents
+        # Tax documents - document management
         tax_documents = await db_svc.get_user_tax_documents(current_user.user_id)
         
-        # Calculate tax estimates if profile exists
+        # Calculate tax estimates if profile exists - basic tax calculation
         tax_data = {}
         if profile and profile.annual_income:
-            # Basic tax calculation
+            # Basic tax calculation - simplified German tax system
             income = profile.annual_income
             grundfreibetrag = 11604  # Basic allowance 2024
             taxable_income = max(0, income - grundfreibetrag)
             
-            # Simplified tax calculation
+            # Simplified tax calculation - progressive tax rates
             if taxable_income <= 0:
                 income_tax = 0
             elif taxable_income <= 62810:
@@ -223,6 +243,7 @@ async def get_user_dashboard_data(
                 "effective_tax_rate": (total_tax / income * 100) if income > 0 else 0
             }
         
+        # Return comprehensive dashboard data - all user info in one response
         return {
             "success": True,
             "profile": profile.dict() if profile else None,

@@ -1,4 +1,11 @@
-"""Chat routes."""
+"""
+Chat routes for TaxFix - Streaming is causing very weird issues - streamlit seems to be not appecting deltas very well.
+I want to mainfaing the MD formatting and streamlit is wierdly not working with it.
+Walk around is Stream character by character - this makes it look like streaming, - works but not happy!
+
+COME BACK LATER IF TIME TO FIX THIS!
+
+"""
 
 import asyncio
 import json
@@ -25,15 +32,17 @@ async def send_message(
     workflow_instance: TaxFixWorkflow = Depends(get_workflow),
     db_svc: DatabaseService = Depends(get_database_service)
 ):
-    """Send a message to the TaxFix assistant."""
+    """
+    Send a message to the TaxFix assistant - basic chat endpoint - Very nice to have for LLM api testing.
+    """
     try:
-        # Generate session ID if not provided
+        # Generate session ID if not provided - need this for conversation tracking
         session_id = message.session_id or f"session_{current_user.user_id}_{int(datetime.utcnow().timestamp())}"
         
-        # Get user profile
+        # Get user profile - need this for personalized responses
         user_profile = await db_svc.get_user_profile(current_user.user_id)
         
-        # Process message through workflow
+        # Process message through workflow - this is where the AI works!
         response_data = await workflow_instance.process_message(
             user_message=message.message,
             session_id=session_id,
@@ -41,7 +50,7 @@ async def send_message(
             user_profile=user_profile
         )
         
-        # Create response
+        # Create response 
         response = ChatResponse(
             content=response_data["content"],
             confidence=response_data["confidence"],
@@ -70,15 +79,20 @@ async def send_message_stream(
     workflow_instance: TaxFixWorkflow = Depends(get_workflow),
     db_svc: DatabaseService = Depends(get_database_service)
 ):
-    """Send a message to the TaxFix assistant with streaming response."""
+    """
+    Send a message to the TaxFix assistant with streaming respons
+    
+    this looks fine for now, will pop in here later to add better streaming
+    and maybe real-time typing indicators - works but streaming could be smoother.
+    """
     try:
-        # Generate session ID if not provided
+        # Generate session ID if not provided - same as regular chat
         session_id = message.session_id or f"session_{current_user.user_id}_{int(datetime.utcnow().timestamp())}"
         
-        # Get user profile
+        # Get user profile - need this for personalized responses
         user_profile = await db_svc.get_user_profile(current_user.user_id)
         
-        # Process message through workflow
+        # Process message through workflow - same logic as regular chat
         response_data = await workflow_instance.process_message(
             user_message=message.message,
             session_id=session_id,
@@ -86,9 +100,9 @@ async def send_message_stream(
             user_profile=user_profile
         )
         
-        # Stream the response
+        # Stream the response - this is the complex part - trying to maintain MD formatting.
         async def generate_stream():
-            # Markdown-safe normalization before streaming tokens
+            # Markdown-safe normalization before streaming tokens - lots of regex here
             _md_enum = re.compile(r'(?m)^(?P<indent>\s*)(?P<num>\d+)\.\s')
             _md_bullets = re.compile(r'(?m)^(?P<indent>\s*)(?:•|-|\*)\s+')
             _md_sections = re.compile(
@@ -97,6 +111,7 @@ async def send_message_stream(
             )
 
             def format_markdown_safe(text: str) -> str:
+                # This function handles markdown formatting for streaming - pretty complex - not happy with this. But works as a walk around.
                 in_code = False
                 out_lines = []
                 for line in text.splitlines(True):  # keep newlines
@@ -124,6 +139,7 @@ async def send_message_stream(
 
             content = format_markdown_safe(response_data.get("content", ""))
 
+            # Stream character by character - this makes it look like typing
             buffer = ""
             safe_boundaries = set(" \t\r.,;:!?)]}")  # not including \n
             for ch in content:
@@ -147,6 +163,7 @@ async def send_message_stream(
                 yield f"data: {json.dumps({'delta': buffer})}\n\n"
             yield "data: [DONE]\n\n"
         
+        # Return the streaming response with proper headers
         return StreamingResponse(
             generate_stream(),
             media_type="text/event-stream",

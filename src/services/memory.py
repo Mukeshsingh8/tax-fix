@@ -20,7 +20,7 @@ class MemoryService(BaseService, DatabaseMixin):
         self.redis_client: Optional[redis.Redis] = None
         self._pool: Optional[redis.ConnectionPool] = None
 
-    # ---- Connection ---------------------------------------------------------
+    # Connection
 
     async def connect(self):
         """Create a shared connection pool and client."""
@@ -57,7 +57,7 @@ class MemoryService(BaseService, DatabaseMixin):
                 return False
         return True
 
-    # ---- Keys ---------------------------------------------------------------
+    # Keys
 
     @staticmethod
     def k_session(session_id: str) -> str: return f"session:{session_id}"
@@ -74,7 +74,7 @@ class MemoryService(BaseService, DatabaseMixin):
     @staticmethod
     def k_user_session(user_id: str) -> str: return f"user_session:{user_id}"
 
-    # ---- Session Management -------------------------------------------------
+    # Session Management
 
     async def create_session(self, session_id: str, user_id: str) -> None:
         if not await self.ensure():
@@ -117,7 +117,7 @@ class MemoryService(BaseService, DatabaseMixin):
         except Exception as e:
             self.logger.error(f"Error updating session activity: {e}")
 
-    # ---- Conversation Context ----------------------------------------------
+    # Conversation Context
 
     async def store_conversation_context(self, session_id: str, context: Dict[str, Any]) -> None:
         if not await self.ensure():
@@ -150,7 +150,7 @@ class MemoryService(BaseService, DatabaseMixin):
         except Exception as e:
             self.logger.error(f"Error updating conversation context: {e}")
 
-    # ---- Message History (short-term) --------------------------------------
+    # Message History (short-term)
 
     async def store_message(self, session_id: str, message: Message) -> None:
         if not await self.ensure():
@@ -184,7 +184,7 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error getting recent messages: {e}")
             return []
 
-    # ---- Conversation History Cache ----------------------------------------
+    # Conversation History Cache
 
     async def cache_conversation_history(self, conversation_id: str, messages: List[Message]) -> None:
         if not await self.ensure():
@@ -237,7 +237,7 @@ class MemoryService(BaseService, DatabaseMixin):
         except Exception as e:
             self.logger.error(f"Error adding message to conversation cache: {e}")
 
-    # ---- User Profile Cache -------------------------------------------------
+    # User Profile Cache
 
     async def cache_user_profile(self, user_id: str, profile: UserProfile) -> None:
         if not await self.ensure():
@@ -264,7 +264,7 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error getting cached user profile: {e}")
             return None
 
-    # ---- Agent State --------------------------------------------------------
+    # Agent State
 
     async def store_agent_state(self, session_id: str, agent_type: str, state: Dict[str, Any]) -> None:
         if not await self.ensure():
@@ -289,7 +289,7 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error getting agent state: {e}")
             return None
 
-    # ---- Temporary Data -----------------------------------------------------
+    # Temporary Data
 
     async def store_temp_data(self, key: str, data: Any, ttl: int = 300) -> None:
         if not await self.ensure():
@@ -313,7 +313,7 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error getting temporary data: {e}")
             return None
 
-    # ---- Cache Management ---------------------------------------------------
+    # Cache Management
 
     async def clear_session_cache(self, session_id: str) -> None:
         if not await self.ensure():
@@ -352,7 +352,7 @@ class MemoryService(BaseService, DatabaseMixin):
             self.logger.error(f"Error getting cache stats: {e}")
             return {}
 
-    # ---- User Session (Auth helper) ----------------------------------------
+    # User Session (Auth helper)
 
     async def store_user_session(self, session_data: Dict[str, Any]) -> None:
         if not await self.ensure():

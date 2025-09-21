@@ -30,8 +30,7 @@ class AuthService(BaseService):
         if not self.secret_key:
             raise ValueError("JWT secret key is required but not configured")
 
-    # ---- Passwords ----------------------------------------------------------
-
+    # Passwords
     def hash_password(self, password: str) -> str:
         return self.pwd_context.hash(password)
 
@@ -45,7 +44,7 @@ class AuthService(BaseService):
             except Exception:
                 return False
 
-    # ---- JWT ----------------------------------------------------------------
+    # JWT
 
     def generate_token(self, user_id: str, email: str) -> str:
         payload = {
@@ -71,7 +70,7 @@ class AuthService(BaseService):
             self.logger.error(f"Token decode error: {e}")
             return None
 
-    # ---- Redis session helpers ---------------------------------------------
+    # Redis session helpers
 
     async def store_user_session(self, session: UserSession) -> None:
         try:
@@ -122,7 +121,7 @@ class AuthService(BaseService):
         except Exception as e:
             self.logger.error(f"Error invalidating user session: {e}")
 
-    # ---- Public API ---------------------------------------------------------
+    # Public API
 
     async def register_user(self, request: RegisterRequest) -> AuthResponse:
         """Create a user, store hashed password, return session + token."""

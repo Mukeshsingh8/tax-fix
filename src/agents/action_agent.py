@@ -1,4 +1,6 @@
 """Action-oriented agent for expense management and interactive suggestions."""
+# make use of the safe decorator.
+# try to make the mutiagent output formated nicely. - working now - come in later if time - to pass to the presenter agent.
 
 from typing import Dict, List, Optional, Any
 from datetime import datetime

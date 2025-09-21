@@ -16,9 +16,8 @@ class ExpenseTools:
         self.database = database_service
         self.logger = get_logger(__name__)
 
-    # ---------------------------
     # Read
-    # ---------------------------
+
     async def read_expenses(
         self,
         user_id: str,
@@ -87,9 +86,8 @@ class ExpenseTools:
             self.logger.error(f"Error reading expenses: {e}")
             return []
 
-    # ---------------------------
     # Create
-    # ---------------------------
+
     async def write_expense(self, user_id: str, expense_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Create a new expense document (document_type='tax_expense').
@@ -137,9 +135,8 @@ class ExpenseTools:
             self.logger.error(f"Error writing expense: {e}")
             return None
 
-    # ---------------------------
     # Update
-    # ---------------------------
+
     async def update_expense(self, expense_id: str, user_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Update an existing expense document."""
         try:
@@ -205,9 +202,8 @@ class ExpenseTools:
             self.logger.error(f"Error updating expense: {e}")
             return None
 
-    # ---------------------------
     # Delete
-    # ---------------------------
+
     async def delete_expense(self, expense_id: str, user_id: str) -> bool:
         """Delete an expense document."""
         try:
@@ -228,9 +224,8 @@ class ExpenseTools:
             self.logger.error(f"Error deleting expense: {e}")
             return False
 
-    # ---------------------------
     # Read single
-    # ---------------------------
+
     async def get_expense_by_id(self, expense_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         """Get a specific expense by ID."""
         try:
@@ -255,9 +250,8 @@ class ExpenseTools:
             self.logger.error(f"Error getting expense by ID: {e}")
             return None
 
-    # ---------------------------
     # Summary
-    # ---------------------------
+
     async def get_expense_summary(self, user_id: str, tax_year: Optional[int] = None) -> Dict[str, Any]:
         """Aggregate totals, categories, and monthly breakdown."""
         try:

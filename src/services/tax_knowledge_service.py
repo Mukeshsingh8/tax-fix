@@ -37,9 +37,7 @@ class TaxKnowledgeService(BaseService):
         
         self.logger.info("Tax knowledge service initialized with specialized components")
     
-    # -----------------------------
     # Data Access Methods
-    # -----------------------------
     
     def get_tax_rules(self, category: Optional[str] = None) -> List[TaxRule]:
         """Get tax rules, optionally filtered by category."""
@@ -57,9 +55,7 @@ class TaxKnowledgeService(BaseService):
         """Get statistics about loaded tax data."""
         return self.data_loader.get_stats()
     
-    # -----------------------------
     # Search Methods
-    # -----------------------------
     
     def search_tax_rules(self, query: str) -> List[TaxRule]:
         """Search tax rules by query with intelligent matching."""
@@ -82,9 +78,7 @@ class TaxKnowledgeService(BaseService):
         """
         return self.search_engine.retrieve(query, profile)
     
-    # -----------------------------
     # Calculation Methods
-    # -----------------------------
     
     def calculate_german_tax(
         self,
@@ -113,9 +107,7 @@ class TaxKnowledgeService(BaseService):
         """Calculate potential tax savings from a deduction."""
         return self.calculation_engine.calculate_tax_savings(current_income, deduction_amount)
     
-    # -----------------------------
     # Combined Operations
-    # -----------------------------
     
     def get_personalized_tax_advice(
         self, 

@@ -1,3 +1,7 @@
+"""
+Multi agent router - The first gate
+"""
+
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 import re
@@ -8,18 +12,16 @@ from ..services.llm import LLMService
 
 logger = get_logger(__name__)
 
-# ------------------------------
+
 # Models
-# ------------------------------
 class AgentPick(BaseModel):
     agent: str
     confidence: float = Field(ge=0.0, le=1.0)
     reasons: str = ""
     triggers: List[str] = Field(default_factory=list)
 
-# ------------------------------
+
 # Router
-# ------------------------------
 class AgentRouter:
     """Intelligent agent router that can return multiple agents + confidences."""
 
@@ -121,9 +123,8 @@ class AgentRouter:
 
         self.logger.info("AgentRouter initialized (multi-agent capable)")
 
-    # ------------------------------
+
     # Public API (multi)
-    # ------------------------------
     async def select_agents(
         self,
         user_message: str,
@@ -167,9 +168,8 @@ class AgentRouter:
         self.logger.info("Routing picks: " + ", ".join([f"{p.agent}@{p.confidence:.2f}" for p in ordered]))
         return ordered
 
-    # ------------------------------
+
     # Public API (single, backward compatible)
-    # ------------------------------
     async def select_agent(
         self,
         user_message: str,
@@ -182,9 +182,8 @@ class AgentRouter:
         self.logger.info(f"Top agent: {top.agent} ({top.confidence:.2f})")
         return top.agent
 
-    # ------------------------------
+
     # Rule engine
-    # ------------------------------
     def rule_based_picks(
         self,
         user_message: str,
@@ -227,9 +226,8 @@ class AgentRouter:
 
         return picks
 
-    # ------------------------------
+
     # LLM scoring (now uses generate_response + robust JSON parsing)
-    # ------------------------------
     async def llm_scored_picks(
         self,
         user_message: str,
@@ -308,9 +306,8 @@ Current user message:
                 fallback.append(AgentPick(agent="orchestrator", confidence=0.5, reasons="fallback"))
             return fallback
 
-    # ------------------------------
+
     # JSON extraction helper
-    # ------------------------------
     def extract_first_json_object(self, text: str) -> Any:
         """
         Extract the first top-level JSON object from a string and parse it.

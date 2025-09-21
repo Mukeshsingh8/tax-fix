@@ -16,9 +16,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from .base_service import BaseService, LLMMixin
 
 
-# ---------------------------------------------------------------------
-# Callback (kept for compatibility with your code)
-# ---------------------------------------------------------------------
+
+# Callback (kept for compatibility)
 class StreamingCallbackHandler(BaseCallbackHandler):
     """Callback handler for streaming responses (token capture)."""
 
@@ -39,9 +38,8 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         return self.finished
 
 
-# ---------------------------------------------------------------------
+
 # LLM Service
-# ---------------------------------------------------------------------
 class LLMService(BaseService, LLMMixin):
     """
     Unified LLM service with:
@@ -57,7 +55,7 @@ class LLMService(BaseService, LLMMixin):
         self.gemini_client: Optional[ChatGoogleGenerativeAI] = None
         self.initialize_clients()
 
-    # ---------- client bootstrap ----------
+    # client bootstrap
     def initialize_clients(self) -> None:
         self.log_operation_start("initialize_clients")
         try:
@@ -94,7 +92,7 @@ class LLMService(BaseService, LLMMixin):
             self.log_operation_error("initialize_clients", e)
             raise
 
-    # ---------- utilities ----------
+    # utilities
     @staticmethod
     def to_lc_messages(
         messages: List[Dict[str, str]],
@@ -163,9 +161,7 @@ class LLMService(BaseService, LLMMixin):
             raise last_err
         raise RuntimeError("No provider available")
 
-    # -----------------------------------------------------------------
     # Core API
-    # -----------------------------------------------------------------
     async def generate_response(
         self,
         messages: List[Dict[str, str]],
@@ -303,9 +299,7 @@ class LLMService(BaseService, LLMMixin):
                 self.logger.error(f"Failed to parse JSON from model output. Raw:\n{text}")
                 raise ValueError(f"Invalid JSON from LLM: {e}") from e
 
-    # -----------------------------------------------------------------
     # Streaming (explicit helper kept for compatibility with callers)
-    # -----------------------------------------------------------------
     async def stream_response(
         self,
         client,                   # kept for backwards compat
@@ -319,10 +313,8 @@ class LLMService(BaseService, LLMMixin):
         except Exception as e:
             self.logger.error(f"Error streaming response: {e}")
             yield f"[stream error: {e}]"
-
-    # -----------------------------------------------------------------
+    
     # Extra helpers (kept and improved)
-    # -----------------------------------------------------------------
     async def generate_with_callback(
         self,
         messages: List[Dict[str, str]],

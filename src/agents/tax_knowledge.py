@@ -1,4 +1,7 @@
 """Tax knowledge agent for providing tax guidance and calculations."""
+# number calculation by different type of LLM are causing different sort of hallucination. 
+# cannot keep updating prompt for every LLM A/B testing and maintaining the prompt.
+# simply implement our own function for tax calculation.
 
 from typing import Dict, List, Optional, Any
 from datetime import datetime

@@ -1,5 +1,5 @@
 """
-Simple logging configuration for TaxFix Multi-Agent System.
+Simple logging configuration 
 """
 import logging
 import sys

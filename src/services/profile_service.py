@@ -33,9 +33,7 @@ class ProfileService(BaseService, ValidationMixin):
         self.llm_service = llm_service
         self.database_service = database_service
     
-    # =============================
     # Profile Information Extraction
-    # =============================
     
     async def extract_profile_info(self, text: str) -> Dict[str, Any]:
         """
@@ -189,9 +187,8 @@ class ProfileService(BaseService, ValidationMixin):
         
         return None
     
-    # =============================
+
     # Profile Data Normalization
-    # =============================
     
     def normalize_profile_data(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -239,9 +236,7 @@ class ProfileService(BaseService, ValidationMixin):
             self.log_operation_error("normalize_profile_data", e)
             return raw_data
     
-    # =============================
     # Profile Validation
-    # =============================
     
     def validate_profile_updates(self, updates: Dict[str, Any], current_profile: Optional[Dict[str, Any]] = None) -> Tuple[Dict[str, Any], List[str]]:
         """
@@ -333,9 +328,7 @@ class ProfileService(BaseService, ValidationMixin):
             self.log_operation_error("validate_profile_updates", e)
             return {}, [f"Validation error: {str(e)}"]
     
-    # =============================
     # Profile CRUD Operations
-    # =============================
     
     async def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
         """Get user profile from database."""
@@ -405,9 +398,7 @@ class ProfileService(BaseService, ValidationMixin):
             self.log_operation_error("update_user_profile", e)
             return None
     
-    # =============================
     # Combined Operations
-    # =============================
     
     async def extract_and_update_profile(self, user_id: str, message_text: str) -> Tuple[Optional[UserProfile], List[str]]:
         """

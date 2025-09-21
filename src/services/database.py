@@ -22,9 +22,8 @@ class DatabaseService(BaseService, DatabaseMixin):
             self.settings.supabase_service_key
         )
     
-    # ---------------------------
+
     # Users
-    # ---------------------------
     async def create_user(self, user: User) -> User:
         return self.safe_database_operation(
             "create_user",
@@ -76,9 +75,8 @@ class DatabaseService(BaseService, DatabaseMixin):
             self.logger.error(f"Error updating user: {e}")
             raise
     
-    # ---------------------------
     # User Profiles
-    # ---------------------------
+
     async def create_user_profile(self, profile: UserProfile) -> UserProfile:
         try:
             data = profile.dict()
@@ -142,9 +140,8 @@ class DatabaseService(BaseService, DatabaseMixin):
             self.logger.error(f"Error creating/updating user profile: {e}")
             raise
     
-    # ---------------------------
     # Conversations
-    # ---------------------------
+
     async def create_conversation(self, conversation: Conversation) -> Conversation:
         try:
             data = conversation.dict(exclude={"messages", "context", "status"})
@@ -225,9 +222,8 @@ class DatabaseService(BaseService, DatabaseMixin):
             self.logger.error(f"Error deleting conversation: {e}")
             return False
     
-    # ---------------------------
     # Messages
-    # ---------------------------
+
     async def add_message(self, message: Message) -> Message:
         try:
             data = message.dict()
@@ -263,9 +259,8 @@ class DatabaseService(BaseService, DatabaseMixin):
             self.logger.error(f"Error deleting message: {e}")
             return False
     
-    # ---------------------------
     # User Learning (single-row per user)
-    # ---------------------------
+
     async def create_or_update_user_learning(self, user_id: str, learning_summary: str) -> Dict[str, Any]:
         try:
             import uuid
@@ -313,9 +308,8 @@ class DatabaseService(BaseService, DatabaseMixin):
             self.logger.error(f"Error deleting user learning: {e}")
             return False
     
-    # ---------------------------
     # Tax Documents (used by ExpenseTools)
-    # ---------------------------
+
     async def create_tax_document(self, document: TaxDocument) -> TaxDocument:
         try:
             data = document.dict()
@@ -380,9 +374,8 @@ class DatabaseService(BaseService, DatabaseMixin):
             self.logger.error(f"Error deleting tax document: {e}")
             return False
     
-    # ---------------------------
     # Analytics / Insights
-    # ---------------------------
+
     async def get_user_insights(self, user_id: str) -> Dict[str, Any]:
         """Get user insights and analytics (safe `.in_()` usage, no subqueries)."""
         try:

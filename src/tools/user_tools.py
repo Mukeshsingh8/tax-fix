@@ -13,9 +13,8 @@ from ..utils import to_dict, clean_updates
 logger = get_logger(__name__)
 
 
-# -------------------------
+
 # Helpers
-# -------------------------
 
 def clean_updates(updates: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -151,9 +150,8 @@ def apply_updates(profile: UserProfile, updates: Dict[str, Any]) -> UserProfile:
         return profile
 
 
-# -------------------------
+
 # UserTools
-# -------------------------
 
 class UserTools:
     """Tools for user profile management (get/upsert/patch/increment)."""
@@ -161,7 +159,7 @@ class UserTools:
     def __init__(self, database_service: DatabaseService):
         self.database = database_service
 
-    # ---- Retrieval ----
+    # Retrieval
     async def get_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user profile as a plain dict."""
         try:
@@ -189,7 +187,7 @@ class UserTools:
             logger.error(f"Error getting user info: {e}")
             return None
 
-    # ---- Upsert/Patch ----
+    # Upsert/Patch
     async def upsert_user_profile(self, user_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Create or update a profile in a single call.
@@ -229,7 +227,7 @@ class UserTools:
         result = await self.upsert_user_profile(user_id, updates)
         return result is not None
 
-    # ---- Counters ----
+    # Counters
     async def update_conversation_count(self, user_id: str, increment: int = 1) -> bool:
         """Increment conversation_count safely (creates profile if missing)."""
         try:

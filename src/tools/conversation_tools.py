@@ -18,9 +18,8 @@ logger = get_logger(__name__)
 _settings = get_settings()
 
 
-# -------------------------
+
 # Helpers
-# -------------------------
 
 def clean_title(s: str, max_len: int = 50) -> str:
     """Trim, strip quotes/newlines, enforce max length."""
@@ -96,9 +95,8 @@ class ConversationTools:
         self.auto_update_threshold = max(3, int(auto_update_threshold))
         self.auto_update_min_interval_sec = max(60, int(auto_update_min_interval_sec))
 
-    # --------------------------------------------------------------------- #
+
     # Titles
-    # --------------------------------------------------------------------- #
     async def analyze_conversation_for_title(self, conversation_id: str, max_messages: int = 10) -> str:
         """
         Generate a concise conversation title using LLM with a robust fallback.
@@ -166,7 +164,7 @@ class ConversationTools:
             logger.error(f"Error updating conversation title: {e}")
             return False
 
-    # --------------------- Auto-Update Hooks --------------------- #
+    # Auto-Update Hooks
 
     async def get_message_count(self, conversation_id: str) -> int:
         """Try a DB count, fallback to fetching a chunk."""
@@ -263,9 +261,8 @@ class ConversationTools:
             logger.error(f"finalize_conversation_title error: {e}")
             return "Tax Consultation"
 
-    # --------------------------------------------------------------------- #
     # Summary / Topics
-    # --------------------------------------------------------------------- #
+
     async def get_conversation_summary(self, conversation_id: str, max_messages: int = 10) -> Dict[str, Any]:
         """Return a lightweight summary with message count, last activity, and top topics."""
         try:
@@ -306,9 +303,8 @@ class ConversationTools:
                 "summary": "Error retrieving summary",
             }
 
-    # --------------------------------------------------------------------- #
     # Deletion (safe, DB-method agnostic)
-    # --------------------------------------------------------------------- #
+
     async def delete_conversation(self, conversation_id: str, user_id: str) -> bool:
         """
         Delete a conversation and its messages, verifying ownership.

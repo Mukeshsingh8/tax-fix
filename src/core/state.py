@@ -1,5 +1,5 @@
 """
-Production-grade state management for LangGraph workflow.
+State management for LangGraph workflow.
 """
 from typing import Dict, Any, List, Optional, TypedDict, Annotated
 from datetime import datetime

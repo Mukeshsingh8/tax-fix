@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """
-TaxFix Multi-Agent System Setup Script
-=====================================
-
 This script helps you set up the TaxFix system step by step.
+- basically a shortcut for the QUICKSTART.md file.
 """
 
 import os

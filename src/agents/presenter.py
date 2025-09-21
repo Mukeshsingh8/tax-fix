@@ -1,4 +1,6 @@
 """Presenter agent for synthesizing multiple agent responses."""
+# can i make use of the safe decorator here?
+# try to make the mutiagent output formated nicely. - working now - come in later if time - to pass to the presenter agent.
 
 from typing import Dict, List, Optional, Any, Tuple
 
@@ -31,9 +33,8 @@ class PresenterAgent(BaseAgent):
             "explained briefly. Never mention 'agents' or 'systems' - speak as one unified assistant."
         )
 
-    # ---------------------------
+
     # Entry point
-    # ---------------------------
     async def process(
         self,
         message: Message,
@@ -51,9 +52,8 @@ class PresenterAgent(BaseAgent):
             reasoning="Direct process call not supported for Presenter Agent"
         )
 
-    # ---------------------------
+
     # Main synthesis method
-    # ---------------------------
     async def synthesize_responses(
         self,
         agent_results: List[Tuple[str, AgentResponse, float]],

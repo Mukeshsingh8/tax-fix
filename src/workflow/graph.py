@@ -1,5 +1,5 @@
 """
-Multi-agent workflow for TaxFix system.
+Multi-agent workflow
 - Routes to one or more agents per turn.
 - Executes them in order and merges outputs into a single assistant message.
 """
@@ -55,13 +55,9 @@ class TaxFixWorkflow:
 
         logger.info("TaxFix workflow initialized (multi-agent)")
 
-    # -------------------------
-    # NOTE: Presenter Agent logic now handled by dedicated PresenterAgent class
-    # -------------------------
 
-    # -------------------------
     # Conversation helpers
-    # -------------------------
+
     async def ensure_conversation_exists(self, user_id: str, session_id: str) -> str:
         """Ensure conversation exists in database and return conversation ID."""
         try:
@@ -112,9 +108,8 @@ class TaxFixWorkflow:
             logger.error(f"Error getting conversation history: {e}")
             return []
 
-    # -------------------------
+
     # Core entry
-    # -------------------------
     async def process_message(
         self,
         user_message: str,
@@ -288,9 +283,7 @@ class TaxFixWorkflow:
                 "execution_metrics": {},
             }
 
-    # -------------------------
     # Agent execution & merge
-    # -------------------------
     async def run_single_agent(
         self,
         agent_name: str,
@@ -453,9 +446,8 @@ class TaxFixWorkflow:
         )
 
 
-    # -------------------------
+
     # Context + learning hooks
-    # -------------------------
     async def update_conversation_context(
         self,
         session_id: str,

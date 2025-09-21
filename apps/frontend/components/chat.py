@@ -38,15 +38,8 @@ def render_conversation_display():
     if not st.session_state.conversation_history:
         st.markdown("""
         <div class="welcome-message">
-            <h3>👋 Welcome to TaxFix AI!</h3>
-            <p>I'm here to help you with German tax questions. Ask me anything about:</p>
-            <ul>
-                <li>📋 Tax deductions and allowances</li>
-                <li>💰 Tax calculations and rates</li>
-                <li>📊 Tax planning strategies</li>
-                <li>🏢 Business and employment taxes</li>
-                <li>📋 Tax filing requirements</li>
-            </ul>
+            <h3>👋 Welcome to TaxFix!</h3>
+            <p>Get answers about German tax questions and maintain & track your expenses for tax savings.</p>
             <p><strong>Start by asking a question below!</strong></p>
         </div>
         """, unsafe_allow_html=True)

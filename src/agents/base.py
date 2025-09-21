@@ -39,7 +39,7 @@ class BaseAgent(ABC):
         name = getattr(agent_type, "value", str(agent_type))
         self.logger = get_logger(f"agent.{name}")
 
-    # ---- Core contract -------------------------------------------------------
+    # Core contract 
 
     @abstractmethod
     async def process(
@@ -60,7 +60,7 @@ class BaseAgent(ABC):
             f"Answer in English. Use German tax terms with brief English explanations."
         )
 
-    # ---- Small utilities -----------------------------------------------------
+    # Small utilities 
 
     async def validate_input(self, message: Message) -> bool:
         """Quick sanity check on inbound message."""
@@ -96,7 +96,7 @@ class BaseAgent(ABC):
             # Never let logging break the flow
             pass
 
-    # ---- Conversation history & LLM glue ------------------------------------
+    # Conversation history & LLM glue 
 
     async def get_conversation_history(
         self,

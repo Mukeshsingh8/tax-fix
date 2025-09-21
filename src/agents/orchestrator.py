@@ -1,4 +1,5 @@
 """Orchestrator agent for providing general responses and fallback handling."""
+# cut down a lot of things like i guess the LLM call to the presentor agent can handel this now.
 
 from typing import Dict, Optional, Any
 

@@ -92,7 +92,7 @@ class Deduction(BaseModel):
         use_enum_values = True
         extra = "ignore"  # tolerate older data with extra keys
 
-    # ----- Convenience accessors (use typed field, else fall back to metadata) -----
+    # Convenience accessors (use typed field, else fall back to metadata) 
     def get_applicable_filing_status(self) -> List[str]:
         if self.applicable_filing_status:
             return self.applicable_filing_status

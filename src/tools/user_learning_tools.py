@@ -17,9 +17,9 @@ logger = get_logger(__name__)
 _settings = get_settings()
 
 
-# -------------------------
+
 # Helpers
-# -------------------------
+
 
 def safe_text(s: Any, max_len: int = 2000) -> str:
     """Basic text sanitizer with length guard."""
@@ -197,9 +197,9 @@ class UserLearningTools:
         self.llm_service = llm_service
         self.default_model = getattr(_settings, "default_llm_model", None) or "groq"
 
-    # --------------------------------------------------------------------- #
+
     # Core analysis
-    # --------------------------------------------------------------------- #
+
     async def analyze_conversation_for_learning(
         self,
         user_id: str,
@@ -284,9 +284,9 @@ class UserLearningTools:
                 logger.error(f"Fallback learning also failed: {inner}")
                 return f"Error analyzing conversation: {e}"
 
-    # --------------------------------------------------------------------- #
+
     # Persistence & retrieval
-    # --------------------------------------------------------------------- #
+
     async def process_conversation_learning(self, user_id: str, conversation_id: str) -> bool:
         """
         Analyze a conversation and store/merge a *structured* summary string (JSON).
@@ -331,9 +331,9 @@ class UserLearningTools:
             logger.error(f"Error getting user learning summary: {e}")
             return {"user_id": user_id, "summary": f"Error retrieving learning data: {e}", "last_updated": None}
 
-    # --------------------------------------------------------------------- #
+
     # Update cadence
-    # --------------------------------------------------------------------- #
+
     async def should_update_user_profile(self, user_id: str, conversation_id: str) -> bool:
         """
         Decide whether to update learning now.

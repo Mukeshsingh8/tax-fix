@@ -1,4 +1,5 @@
 """Profile agent for managing user profiles and personalization."""
+#open source LLM are crazy!!! -  need to implement the safe decorator here. - prompt safe gard - answering in german
 
 from typing import Dict, List, Optional, Any
 from datetime import datetime
